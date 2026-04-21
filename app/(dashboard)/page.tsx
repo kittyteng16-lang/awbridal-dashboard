@@ -5,16 +5,33 @@ import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { RadarChart } from "@/components/charts/RadarChart";
 import { Badge } from "@/components/ui/badge";
+import { fetchTrafficData, fetchOverviewHealth } from "@/lib/ga4";
+import { fetchSEOData } from "@/lib/gsc";
+import { getCached, setCached } from "@/lib/supabase";
 import type { OverviewData } from "@/types/dashboard";
 
 async function getOverview(): Promise<OverviewData | null> {
   try {
-    const base = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res = await fetch(`${base}/api/dashboard/overview`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
+    const cached = await getCached<OverviewData>("overview");
+    if (cached) return cached;
+    const [traffic, seo, health] = await Promise.all([
+      fetchTrafficData(),
+      fetchSEOData(),
+      fetchOverviewHealth(),
+    ]);
+    const data: OverviewData = {
+      kpi: {
+        pv: traffic.kpi.pv,
+        uv: traffic.kpi.uv,
+        organicClicks: seo.kpi.clicks,
+        avgPosition: seo.kpi.position,
+      },
+      trend: traffic.trend,
+      sources: traffic.sources,
+      health,
+    };
+    await setCached("overview", data);
+    return data;
   } catch {
     return null;
   }

@@ -3,14 +3,17 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { Badge } from "@/components/ui/badge";
+import { fetchSEOData } from "@/lib/gsc";
+import { getCached, setCached } from "@/lib/supabase";
 import type { SEOData } from "@/types/dashboard";
 
 async function getSEO(): Promise<SEOData | null> {
   try {
-    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
-    const res = await fetch(`${base}/api/dashboard/seo`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
+    const cached = await getCached<SEOData>("seo");
+    if (cached) return cached;
+    const data = await fetchSEOData();
+    await setCached("seo", data);
+    return data;
   } catch { return null; }
 }
 

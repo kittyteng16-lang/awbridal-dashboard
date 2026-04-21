@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Badge } from "@/components/ui/badge";
+import { fetchTrafficData } from "@/lib/ga4";
+import { getCached, setCached } from "@/lib/supabase";
 import type { TrafficData } from "@/types/dashboard";
 
 async function getTraffic(): Promise<TrafficData | null> {
   try {
-    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
-    const res = await fetch(`${base}/api/dashboard/traffic`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
+    const cached = await getCached<TrafficData>("traffic");
+    if (cached) return cached;
+    const data = await fetchTrafficData();
+    await setCached("traffic", data);
+    return data;
   } catch { return null; }
 }
 
