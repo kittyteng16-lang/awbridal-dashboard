@@ -21,30 +21,37 @@ export function createServerClient() {
 const TTL_HOURS = 6;   // 缓存有效期
 
 export async function getCached<T>(section: string): Promise<T | null> {
-  const db = createServerClient();
-  const { data } = await db
-    .from("dashboard_cache")
-    .select("data, expires_at")
-    .eq("section", section)
-    .single();
+  try {
+    const db = createServerClient();
+    const { data, error } = await db
+      .from("dashboard_cache")
+      .select("data, expires_at")
+      .eq("section", section)
+      .single();
 
-  if (!data) return null;
-  if (new Date(data.expires_at) < new Date()) return null;   // 已过期
-  return data.data as T;
+    if (error || !data) return null;
+    if (new Date(data.expires_at) < new Date()) return null;
+    return data.data as T;
+  } catch {
+    return null;
+  }
 }
 
 export async function setCached<T>(section: string, payload: T): Promise<void> {
-  const db = createServerClient();
-  const now = new Date();
-  const expires = new Date(now.getTime() + TTL_HOURS * 60 * 60 * 1000);
-
-  await db.from("dashboard_cache").upsert(
-    {
-      section,
-      data: payload,
-      fetched_at: now.toISOString(),
-      expires_at: expires.toISOString(),
-    },
-    { onConflict: "section" }
-  );
+  try {
+    const db = createServerClient();
+    const now = new Date();
+    const expires = new Date(now.getTime() + TTL_HOURS * 60 * 60 * 1000);
+    await db.from("dashboard_cache").upsert(
+      {
+        section,
+        data: payload,
+        fetched_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+      },
+      { onConflict: "section" }
+    );
+  } catch {
+    // 缓存失败不影响主流程
+  }
 }
