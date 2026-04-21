@@ -59,6 +59,18 @@ export interface OverviewData {
   health: { subject: string; score: number }[];
 }
 
+// ── 转化 ──────────────────────────────────────────────
+export interface ConversionData {
+  kpi: {
+    purchases: KPIMetric;
+    checkouts: KPIMetric;
+    addToCarts: KPIMetric;
+    cvr: KPIMetric;
+  };
+  funnel: { step: string; count: number; rate: string }[];
+  trend: TimeSeriesPoint[];   // date, purchase, add_to_cart
+}
+
 // ── Supabase 缓存行 ────────────────────────────────────
 export interface CacheRow {
   id: string;
