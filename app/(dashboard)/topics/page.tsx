@@ -1,42 +1,122 @@
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { fetchGoogleTrends, fetchRedditTrends } from "@/lib/trends";
+import type { TrendingTopic } from "@/lib/trends";
 
-export default function TopicsPage() {
+async function getTopicsData() {
+  const [trendsData, redditTopics] = await Promise.allSettled([
+    fetchGoogleTrends(["aw bridal", "wedding dress", "bridal gown", "wedding shop"]),
+    fetchRedditTrends("wedding dress bride", 10),
+  ]);
+
+  return {
+    trends: trendsData.status === "fulfilled" ? trendsData.value : [],
+    reddit: redditTopics.status === "fulfilled" ? redditTopics.value : [] as TrendingTopic[],
+  };
+}
+
+export default async function TopicsPage() {
+  const { trends, reddit } = await getTopicsData();
+
+  const maxInterest = Math.max(...trends.map((t) => t.interest), 1);
+
   return (
     <>
-      <Topbar title="热门话题" subtitle="外部热点与品牌声量" />
+      <Topbar title="热门话题" subtitle="外部热点与品牌声量 · Google Trends + Reddit" />
       <main className="flex-1 p-6 space-y-5">
+
+        {/* Google Trends */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>热门话题</CardTitle>
-                <CardDescription className="mt-1">接入微博热搜 / Brand24 / Mention 等舆情 API</CardDescription>
+                <CardTitle>关键词搜索热度</CardTitle>
+                <CardDescription className="mt-1">近30天 Google Trends 搜索指数（0–100）</CardDescription>
               </div>
-              <Badge variant="warning">待接入</Badge>
+              <Badge variant="outline">Google Trends</Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-              <span className="text-5xl">🔥</span>
-              <div>
-                <p className="font-semibold text-foreground">待接入舆情监控平台</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  推荐接入以下平台追踪品牌话题与行业趋势
-                </p>
+            {trends.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                <span className="text-4xl">📊</span>
+                <p className="text-sm text-muted-foreground">Google Trends 数据暂时不可用</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 max-w-xs w-full text-xs">
-                {["微博热搜 API", "Brand24", "Mention.com", "Google Trends"].map((p) => (
-                  <div key={p} className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    {p}
+            ) : (
+              <div className="space-y-4">
+                {trends.map((t) => (
+                  <div key={t.keyword} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{t.keyword}</span>
+                      <span className="text-muted-foreground font-mono">{t.interest}</span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${(t.interest / maxInterest) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Reddit 热门话题 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>婚纱行业 Reddit 热帖</CardTitle>
+                <CardDescription className="mt-1">本周 wedding dress / bride 热门讨论</CardDescription>
+              </div>
+              <Badge variant="outline">Reddit</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {reddit.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                <span className="text-4xl">💬</span>
+                <p className="text-sm text-muted-foreground">暂无数据</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {reddit.map((topic, i) => (
+                  <div key={i} className="px-4 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <a href={topic.url} target="_blank" rel="noopener noreferrer"
+                          className="text-sm font-medium text-foreground hover:text-primary line-clamp-2 leading-snug">
+                          {topic.title}
+                        </a>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          {topic.relatedQueries.map((q) => (
+                            <span key={q} className="bg-muted rounded px-1.5 py-0.5">{q}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">{topic.traffic}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mention.com 占位 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Mention.com 舆情监控</CardTitle>
+              <Badge variant="warning">待接入</Badge>
+            </div>
+            <CardDescription>Mention.com 需要付费订阅，接入后可监控全网品牌提及</CardDescription>
+          </CardHeader>
+        </Card>
+
       </main>
     </>
   );
