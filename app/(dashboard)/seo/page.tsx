@@ -47,7 +47,7 @@ export default async function SEOPage({
 }) {
   const params = await searchParams;
   const resolved = resolveDateRange(params, "30d");
-  const cacheVersion = "v2";
+  const cacheVersion = "v3";
   const cacheKey = resolved.isCustom
     ? `seo_${cacheVersion}_custom_${resolved.start}_${resolved.end}`
     : `seo_${cacheVersion}_${resolved.range}`;
