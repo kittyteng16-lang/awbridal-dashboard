@@ -93,28 +93,50 @@ const BRIDAL_SUBREDDITS = [
   "wedding",
   "weddingwow",
   "prom",
-  "Prom",
   "PromdressAdvice",
   "PromDresses",
 ];
 
-export async function fetchRedditTrends(_topic: string, limit = 20, timeRange = "month"): Promise<TrendingTopic[]> {
-  const subredditStr = BRIDAL_SUBREDDITS.join("+");
-  const url = `https://www.reddit.com/r/${subredditStr}/top.json?t=${timeRange}&limit=${limit}`;
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; awbridal-dashboard/1.0; +https://awbridal.com)",
-      Accept: "application/json",
-    },
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) throw new Error(`Reddit trends ${res.status}`);
-  const data = await res.json();
-  return data.data.children.map((c: { data: { title: string; score: number; subreddit: string; permalink: string; num_comments: number } }) => ({
-    title: c.data.title,
-    traffic: `${c.data.score.toLocaleString()} upvotes · ${c.data.num_comments} comments`,
-    relatedQueries: [`r/${c.data.subreddit}`],
-    source: "reddit" as const,
-    url: `https://www.reddit.com${c.data.permalink}`,
-  }));
+function parseRSSEntries(xml: string, subreddit: string): TrendingTopic[] {
+  const entries: TrendingTopic[] = [];
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+  let match;
+  while ((match = entryRegex.exec(xml)) !== null) {
+    const block = match[1];
+    const title = (/<title>([\s\S]*?)<\/title>/.exec(block)?.[1] ?? "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+    const link = /<link href="([^"]+)"/.exec(block)?.[1] ?? "";
+    if (title && link) {
+      entries.push({
+        title,
+        traffic: `r/${subreddit}`,
+        relatedQueries: [`r/${subreddit}`],
+        source: "reddit" as const,
+        url: link,
+      });
+    }
+  }
+  return entries;
+}
+
+export async function fetchRedditTrends(_topic: string, limit = 25, timeRange = "month"): Promise<TrendingTopic[]> {
+  const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  const results = await Promise.allSettled(
+    BRIDAL_SUBREDDITS.map((sub) =>
+      fetch(`https://www.reddit.com/r/${sub}/top/.rss?t=${timeRange}&limit=10`, {
+        headers: { "User-Agent": UA, Accept: "application/atom+xml,application/xml,text/xml" },
+        next: { revalidate: 3600 },
+      }).then((r) => {
+        if (!r.ok) throw new Error(`RSS ${sub} ${r.status}`);
+        return r.text();
+      }).then((xml) => parseRSSEntries(xml, sub))
+    )
+  );
+
+  const all: TrendingTopic[] = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") all.push(...r.value);
+  }
+  // shuffle to mix subreddits, return top N
+  all.sort(() => Math.random() - 0.5);
+  return all.slice(0, limit);
 }
