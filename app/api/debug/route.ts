@@ -21,5 +21,17 @@ export async function GET() {
     results.seo = { ok: false, error: String(e) };
   }
 
+  try {
+    const r = await fetch("https://www.reddit.com/r/weddingplanning/top/.rss?t=month&limit=3", {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      cache: "no-store",
+    });
+    const text = await r.text();
+    const titles = [...text.matchAll(/<title>([\s\S]*?)<\/title>/g)].slice(1, 4).map(m => m[1]);
+    results.reddit = { ok: r.ok, status: r.status, titles };
+  } catch (e) {
+    results.reddit = { ok: false, error: String(e) };
+  }
+
   return NextResponse.json(results);
 }
