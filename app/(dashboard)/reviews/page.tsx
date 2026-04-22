@@ -1,7 +1,8 @@
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DateRangeSelector, getRedditTimeParam, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
+import { DateRangeSelector } from "@/components/common/DateRangeSelector";
+import { getRedditTimeParam, getRangeLabel, type DateRange } from "@/lib/date-range";
 import { fetchRedditMentions } from "@/lib/reddit";
 import type { RedditResult } from "@/lib/reddit";
 
