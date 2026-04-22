@@ -67,18 +67,18 @@ export async function fetchTrustpilotReviews(
     }
 
     // 提取评价统计
-    const businessUnit = pageProps.businessUnit || {};
+    const businessUnitData = pageProps.businessUnit || {};
     const reviews = pageProps.reviews || [];
 
     const stats: TrustpilotStats = {
-      averageRating: businessUnit.score?.trustScore || 0,
-      totalReviews: businessUnit.numberOfReviews?.total || 0,
+      averageRating: businessUnitData.score?.trustScore || 0,
+      totalReviews: businessUnitData.numberOfReviews?.total || 0,
       ratingDistribution: {
-        1: businessUnit.numberOfReviews?.oneStar || 0,
-        2: businessUnit.numberOfReviews?.twoStars || 0,
-        3: businessUnit.numberOfReviews?.threeStars || 0,
-        4: businessUnit.numberOfReviews?.fourStars || 0,
-        5: businessUnit.numberOfReviews?.fiveStars || 0,
+        1: businessUnitData.numberOfReviews?.oneStar || 0,
+        2: businessUnitData.numberOfReviews?.twoStars || 0,
+        3: businessUnitData.numberOfReviews?.threeStars || 0,
+        4: businessUnitData.numberOfReviews?.fourStars || 0,
+        5: businessUnitData.numberOfReviews?.fiveStars || 0,
       },
       reviews: reviews.slice(0, limit).map((review: any) => ({
         id: review.id || '',
