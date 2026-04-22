@@ -106,7 +106,7 @@ function generateBusinessInsights(data: OverviewData | null) {
 
     const weakest = data.health.reduce((min, h) => h.score < min.score ? h : min);
     if (weakest.score < 70) {
-      insights.push(`💡 重点优化：${weakest.dimension} 板块评分较低（${weakest.score}分）`);
+      insights.push(`💡 重点优化：${weakest.subject} 板块评分较低（${weakest.score}分）`);
     }
   }
 
