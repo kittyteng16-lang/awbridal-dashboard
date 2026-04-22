@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Badge } from "@/components/ui/badge";
-import { DateRangeSelector, getRangeDays, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
+import { DateRangeSelector } from "@/components/common/DateRangeSelector";
+import { getRangeDays, getRangeLabel, type DateRange } from "@/lib/date-range";
 import { fetchTrafficData } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
 import type { TrafficData } from "@/types/dashboard";
