@@ -2,15 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-
-export type DateRange = "7d" | "30d" | "90d" | "1y";
-
-const DATE_RANGES = [
-  { value: "7d" as DateRange, label: "近7天" },
-  { value: "30d" as DateRange, label: "近30天" },
-  { value: "90d" as DateRange, label: "近90天" },
-  { value: "1y" as DateRange, label: "近一年" },
-];
+import { DATE_RANGES, type DateRange } from "@/lib/date-range";
 
 export function DateRangeSelector() {
   const router = useRouter();
@@ -41,42 +33,4 @@ export function DateRangeSelector() {
       </div>
     </div>
   );
-}
-
-// 辅助函数：根据时间范围获取对应的天数
-export function getRangeDays(range: DateRange): number {
-  switch (range) {
-    case "7d":
-      return 7;
-    case "30d":
-      return 30;
-    case "90d":
-      return 90;
-    case "1y":
-      return 365;
-    default:
-      return 30;
-  }
-}
-
-// 辅助函数：根据时间范围获取标签
-export function getRangeLabel(range: DateRange): string {
-  const found = DATE_RANGES.find((r) => r.value === range);
-  return found?.label || "近30天";
-}
-
-// 辅助函数：Reddit 时间参数映射
-export function getRedditTimeParam(range: DateRange): string {
-  switch (range) {
-    case "7d":
-      return "week";
-    case "30d":
-      return "month";
-    case "90d":
-      return "year"; // Reddit 没有3个月选项，用year
-    case "1y":
-      return "year";
-    default:
-      return "month";
-  }
 }
