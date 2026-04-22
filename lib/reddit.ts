@@ -38,7 +38,7 @@ function guessSentiment(title: string, text: string): "positive" | "neutral" | "
 
 export async function fetchRedditMentions(query: string, limit = 15): Promise<RedditResult[]> {
   const encoded = encodeURIComponent(query);
-  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=new&limit=${limit}&t=month`;
+  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=new&limit=${limit}&t=year`;
   const res = await fetch(url, {
     headers: { "User-Agent": "awbridal-dashboard/1.0" },
     next: { revalidate: 3600 },

@@ -2,33 +2,86 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchRedditMentions } from "@/lib/reddit";
-import { fetchTrustpilotReviews } from "@/lib/trustpilot";
 import type { RedditResult } from "@/lib/reddit";
-import type { TrustpilotStats } from "@/lib/trustpilot";
 
 async function getReviews(): Promise<RedditResult[]> {
   try {
-    const results = await fetchRedditMentions('"aw bridal" OR "awbridal"', 20);
+    const results = await fetchRedditMentions('"aw bridal" OR "awbridal"', 50);
     return results;
   } catch {
     return [];
   }
 }
 
-async function getTrustpilot(): Promise<TrustpilotStats> {
-  try {
-    // 替换为您的 Trustpilot 业务单元名称
-    // 通常是您的域名，如 "awbridal.com" 或 "www.awbridal.com"
-    const stats = await fetchTrustpilotReviews("www.awbridal.com", 15);
-    return stats;
-  } catch {
+// 生成诊断性分析
+function generateInsights(reviews: RedditResult[]) {
+  if (reviews.length === 0) {
     return {
-      averageRating: 0,
-      totalReviews: 0,
-      reviews: [],
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      summary: "暂无数据",
+      insights: ["近期没有发现相关品牌提及"],
+      sentiment: "neutral" as const
     };
   }
+
+  const positive = reviews.filter((r) => r.sentiment === "positive").length;
+  const negative = reviews.filter((r) => r.sentiment === "negative").length;
+  const neutral = reviews.filter((r) => r.sentiment === "neutral").length;
+  const total = reviews.length;
+
+  const posRate = Math.round((positive / total) * 100);
+  const negRate = Math.round((negative / total) * 100);
+
+  // 计算平均互动
+  const avgScore = Math.round(reviews.reduce((sum, r) => sum + r.score, 0) / total);
+  const avgComments = Math.round(reviews.reduce((sum, r) => sum + r.comments, 0) / total);
+
+  // 找出高互动帖子
+  const highEngagement = reviews.filter(r => r.score > avgScore * 1.5 || r.comments > avgComments * 1.5);
+
+  const insights: string[] = [];
+  let overallSentiment: "positive" | "neutral" | "negative" = "neutral";
+
+  // 情感分析
+  if (posRate >= 60) {
+    insights.push(`✅ 品牌口碑表现优秀，${posRate}% 的提及为正面评价`);
+    overallSentiment = "positive";
+  } else if (posRate >= 40) {
+    insights.push(`📊 品牌口碑表现良好，${posRate}% 的提及为正面评价`);
+    overallSentiment = "neutral";
+  } else if (negRate >= 40) {
+    insights.push(`⚠️ 需要关注，${negRate}% 的提及为负面反馈`);
+    overallSentiment = "negative";
+  } else {
+    insights.push(`📊 品牌提及以中性为主，正面评价占 ${posRate}%`);
+  }
+
+  // 互动分析
+  if (highEngagement.length >= 3) {
+    insights.push(`🔥 发现 ${highEngagement.length} 条高互动帖子，平均获得 ${Math.round(highEngagement.reduce((sum, r) => sum + r.score, 0) / highEngagement.length)} 个赞`);
+  }
+
+  if (avgComments >= 10) {
+    insights.push(`💬 用户参与度高，平均每条帖子有 ${avgComments} 条评论`);
+  } else if (avgComments < 3) {
+    insights.push(`💬 用户参与度较低，建议增加社区互动`);
+  }
+
+  // 负面预警
+  if (negative >= 3) {
+    const recentNegative = reviews.filter(r => r.sentiment === "negative").slice(0, 3);
+    insights.push(`⚠️ 发现 ${negative} 条负面反馈，建议及时查看并回应`);
+  }
+
+  // 趋势建议
+  if (posRate >= 70) {
+    insights.push(`💡 建议：保持当前服务质量，可考虑邀请满意客户分享更多正面评价`);
+  } else if (negRate >= 30) {
+    insights.push(`💡 建议：重点关注负面反馈中的共性问题，优先改进服务体验`);
+  }
+
+  const summary = `近一年共 ${total} 条品牌提及 · 正面 ${posRate}% · 负面 ${negRate}% · 平均互动 ${avgScore}⬆ ${avgComments}💬`;
+
+  return { summary, insights, sentiment: overallSentiment };
 }
 
 const SENTIMENT_CONFIG = {
@@ -38,20 +91,48 @@ const SENTIMENT_CONFIG = {
 };
 
 export default async function ReviewsPage() {
-  const [reviews, trustpilot] = await Promise.all([
-    getReviews(),
-    getTrustpilot(),
-  ]);
+  const reviews = await getReviews();
 
   const positive = reviews.filter((r) => r.sentiment === "positive").length;
   const negative = reviews.filter((r) => r.sentiment === "negative").length;
   const neutral  = reviews.filter((r) => r.sentiment === "neutral").length;
   const total = reviews.length || 1;
 
+  const analysis = generateInsights(reviews);
+
   return (
     <>
-      <Topbar title="用户评价" subtitle="多平台口碑监控 · Reddit 品牌提及" />
+      <Topbar title="用户评价" subtitle="多平台口碑监控 · Reddit 近一年品牌提及" />
       <main className="flex-1 p-6 space-y-5">
+
+        {/* 诊断性分析 */}
+        <Card className={
+          analysis.sentiment === "positive" ? "border-emerald-200 bg-emerald-50/30" :
+          analysis.sentiment === "negative" ? "border-red-200 bg-red-50/30" :
+          "border-blue-200 bg-blue-50/30"
+        }>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">
+                {analysis.sentiment === "positive" ? "📈" : analysis.sentiment === "negative" ? "📉" : "📊"}
+              </span>
+              <div>
+                <CardTitle>口碑诊断分析</CardTitle>
+                <CardDescription className="mt-1">{analysis.summary}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {analysis.insights.map((insight, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-muted-foreground">•</span>
+                  <span>{insight}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* 情感汇总 */}
         <div className="grid grid-cols-3 gap-4">
@@ -79,7 +160,7 @@ export default async function ReviewsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Reddit 品牌提及</CardTitle>
-                <CardDescription className="mt-1">近30天提及"aw bridal"的帖子</CardDescription>
+                <CardDescription className="mt-1">近一年提及"aw bridal"的帖子（按时间倒序）</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Badge variant="outline">Reddit</Badge>
@@ -126,124 +207,6 @@ export default async function ReviewsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Trustpilot 评分统计 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Trustpilot 评分统计</CardTitle>
-                <CardDescription className="mt-1">总评分及星级分布</CardDescription>
-              </div>
-              <div className="flex gap-2 items-center">
-                <Badge variant="outline">Trustpilot</Badge>
-                {trustpilot.totalReviews > 0 && (
-                  <div className="flex items-center gap-1 text-lg font-semibold">
-                    <span className="text-yellow-500">★</span>
-                    <span>{trustpilot.averageRating.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {trustpilot.totalReviews === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
-                <span className="text-4xl">⚠️</span>
-                <p className="text-sm text-muted-foreground">无法获取 Trustpilot 数据</p>
-                <p className="text-xs text-muted-foreground">请确认业务单元名称是否正确（在代码中设置为 "www.awbridal.com"）</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* 星级分布 */}
-                <div className="space-y-2">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = trustpilot.ratingDistribution[star as keyof typeof trustpilot.ratingDistribution];
-                    const percentage = trustpilot.totalReviews > 0
-                      ? Math.round((count / trustpilot.totalReviews) * 100)
-                      : 0;
-                    return (
-                      <div key={star} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 w-16 text-sm text-muted-foreground">
-                          <span>{star}</span>
-                          <span className="text-yellow-500">★</span>
-                        </div>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-yellow-400 rounded-full"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <span className="w-16 text-right text-sm text-muted-foreground">
-                          {count} ({percentage}%)
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="pt-2 border-t text-sm text-muted-foreground">
-                  共 {trustpilot.totalReviews} 条评价
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Trustpilot 最新评价 */}
-        {trustpilot.reviews.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Trustpilot 最新评价</CardTitle>
-                  <CardDescription className="mt-1">用户真实评价</CardDescription>
-                </div>
-                <Badge>{trustpilot.reviews.length} 条</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {trustpilot.reviews.map((review) => (
-                  <div key={review.id} className="px-4 py-3 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span
-                                key={star}
-                                className={star <= review.rating ? "text-yellow-500" : "text-gray-300"}
-                              >
-                                ★
-                              </span>
-                            ))}
-                          </div>
-                          {review.verified && (
-                            <Badge variant="outline" className="text-xs">✓ 已验证</Badge>
-                          )}
-                        </div>
-                        {review.title && (
-                          <h4 className="mt-1 text-sm font-medium text-foreground">
-                            {review.title}
-                          </h4>
-                        )}
-                        {review.text && (
-                          <p className="mt-1 text-xs text-muted-foreground line-clamp-3">
-                            {review.text}
-                          </p>
-                        )}
-                        <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{review.author}</span>
-                          <span>{review.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
       </main>
     </>
