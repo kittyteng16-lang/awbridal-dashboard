@@ -116,9 +116,10 @@ function generateBusinessInsights(data: OverviewData | null) {
 export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: Promise<{ range?: string }>;
 }) {
-  const range = (searchParams.range as DateRange) || "30d";
+  const params = await searchParams;
+  const range = (params.range as DateRange) || "30d";
   const days = getRangeDays(range);
   const rangeLabel = getRangeLabel(range);
 

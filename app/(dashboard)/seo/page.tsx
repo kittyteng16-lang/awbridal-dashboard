@@ -22,9 +22,10 @@ async function getSEO(days: number): Promise<SEOData | null> {
 export default async function SEOPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: Promise<{ range?: string }>;
 }) {
-  const range = (searchParams.range as DateRange) || "30d";
+  const params = await searchParams;
+  const range = (params.range as DateRange) || "30d";
   const days = getRangeDays(range);
   const rangeLabel = getRangeLabel(range);
 

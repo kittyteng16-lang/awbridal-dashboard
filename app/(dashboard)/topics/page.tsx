@@ -36,9 +36,10 @@ function getTrendsTimeParam(range: DateRange): string {
 export default async function TopicsPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: Promise<{ range?: string }>;
 }) {
-  const range = (searchParams.range as DateRange) || "30d";
+  const params = await searchParams;
+  const range = (params.range as DateRange) || "30d";
   const rangeLabel = getRangeLabel(range);
   const trendsTime = getTrendsTimeParam(range);
   const redditTime = getRedditTimeParam(range);

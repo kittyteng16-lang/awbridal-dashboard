@@ -94,9 +94,10 @@ const SENTIMENT_CONFIG = {
 export default async function ReviewsPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: Promise<{ range?: string }>;
 }) {
-  const range = (searchParams.range as DateRange) || "1y";
+  const params = await searchParams;
+  const range = (params.range as DateRange) || "1y";
   const timeParam = getRedditTimeParam(range);
   const rangeLabel = getRangeLabel(range);
 
