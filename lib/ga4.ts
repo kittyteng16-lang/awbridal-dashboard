@@ -322,23 +322,25 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
     const lastSourceSet = new Set(Object.keys(byPeriod.last));
     const newDomains = currentSources.filter((s) => !lastSourceSet.has(s)).length;
 
-    const topReferrals = Object.entries(byPeriod.this)
+    const allReferrals = Object.entries(byPeriod.this)
       .map(([domain, v]) => ({
         domain,
         sessions: v.sessions,
         engagementRate: `${v.sessions ? ((v.engaged / v.sessions) * 100).toFixed(1) : "0.0"}%`,
       }))
-      .sort((a, b) => b.sessions - a.sessions)
-      .slice(0, 8);
+      .sort((a, b) => b.sessions - a.sessions);
 
-    const totalReferralSessions = topReferrals.reduce((sum, r) => sum + r.sessions, 0);
-    const totalEngaged = topReferrals.reduce(
+    const topReferrals = allReferrals.slice(0, 8);
+
+    const totalReferralSessions = allReferrals.reduce((sum, r) => sum + r.sessions, 0);
+    const totalEngaged = allReferrals.reduce(
       (sum, r) => sum + (parseFloat(r.engagementRate) / 100) * r.sessions,
       0
     );
     const qualityRate = `${totalReferralSessions ? ((totalEngaged / totalReferralSessions) * 100).toFixed(1) : "0.0"}%`;
 
-    const aiSources = topReferrals
+    // AI sources filtered from all referrals (not just top 8)
+    const aiSources = allReferrals
       .filter((r) => AI_SOURCE_PATTERNS.some((p) => r.domain.includes(p)))
       .sort((a, b) => b.sessions - a.sessions);
     const aiMentions = aiSources.reduce((sum, r) => sum + r.sessions, 0);
