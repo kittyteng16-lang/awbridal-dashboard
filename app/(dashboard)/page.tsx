@@ -43,7 +43,6 @@ async function getOverview(days: number): Promise<OverviewData | null> {
 function generateBusinessInsights(data: OverviewData | null) {
   if (!data) {
     return {
-      summary: "数据加载中",
       insights: ["正在获取业务数据..."],
       status: "neutral" as const
     };
@@ -53,10 +52,10 @@ function generateBusinessInsights(data: OverviewData | null) {
   let status: "good" | "warning" | "neutral" = "neutral";
 
   // KPI 分析
-  const pvChange = typeof data.kpi.pv.change === 'string' ? 0 : parseFloat(data.kpi.pv.change);
-  const uvChange = typeof data.kpi.uv.change === 'string' ? 0 : parseFloat(data.kpi.uv.change);
-  const clicksChange = typeof data.kpi.organicClicks.change === 'string' ? 0 : parseFloat(data.kpi.organicClicks.change);
-  const positionChange = typeof data.kpi.avgPosition.change === 'string' ? 0 : parseFloat(data.kpi.avgPosition.change);
+  const pvChange = typeof data.kpi?.pv?.change === 'string' ? 0 : parseFloat(String(data.kpi?.pv?.change || 0));
+  const uvChange = typeof data.kpi?.uv?.change === 'string' ? 0 : parseFloat(String(data.kpi?.uv?.change || 0));
+  const clicksChange = typeof data.kpi?.organicClicks?.change === 'string' ? 0 : parseFloat(String(data.kpi?.organicClicks?.change || 0));
+  const positionChange = typeof data.kpi?.avgPosition?.change === 'string' ? 0 : parseFloat(String(data.kpi?.avgPosition?.change || 0));
 
   // 流量趋势分析
   if (pvChange > 10 || uvChange > 10) {
@@ -85,8 +84,8 @@ function generateBusinessInsights(data: OverviewData | null) {
   }
 
   // 流量来源分析
-  if (data.sources && data.sources.length > 0) {
-    const organicSource = data.sources.find(s => s.name.includes('Organic') || s.name.includes('自然'));
+  if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
+    const organicSource = data.sources.find(s => s?.name?.includes('Organic') || s?.name?.includes('自然'));
     if (organicSource && organicSource.value > 40) {
       insights.push(`💡 自然流量占比健康（${organicSource.value}%），继续保持 SEO 优化`);
     } else if (organicSource && organicSource.value < 20) {
@@ -95,8 +94,8 @@ function generateBusinessInsights(data: OverviewData | null) {
   }
 
   // 健康度分析
-  if (data.health && data.health.length > 0) {
-    const avgHealth = data.health.reduce((sum, h) => sum + h.score, 0) / data.health.length;
+  if (data.health && Array.isArray(data.health) && data.health.length > 0) {
+    const avgHealth = data.health.reduce((sum, h) => sum + (h?.score || 0), 0) / data.health.length;
     if (avgHealth >= 80) {
       insights.push(`✅ 业务板块整体健康，平均得分 ${avgHealth.toFixed(0)} 分`);
     } else if (avgHealth < 60) {
@@ -104,8 +103,8 @@ function generateBusinessInsights(data: OverviewData | null) {
       status = "warning";
     }
 
-    const weakest = data.health.reduce((min, h) => h.score < min.score ? h : min);
-    if (weakest.score < 70) {
+    const weakest = data.health.reduce((min, h) => (h?.score || 100) < (min?.score || 100) ? h : min);
+    if (weakest?.score && weakest.score < 70) {
       insights.push(`💡 重点优化：${weakest.subject} 板块评分较低（${weakest.score}分）`);
     }
   }
