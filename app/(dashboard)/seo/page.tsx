@@ -47,7 +47,7 @@ export default async function SEOPage({
 }) {
   const params = await searchParams;
   const resolved = resolveDateRange(params, "30d");
-  const cacheVersion = "v4";
+  const cacheVersion = "v5";
   const cacheKey = resolved.isCustom
     ? `seo_${cacheVersion}_custom_${resolved.start}_${resolved.end}`
     : `seo_${cacheVersion}_${resolved.range}`;
@@ -217,7 +217,8 @@ export default async function SEOPage({
               <Badge variant="outline">Experimental</Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            {/* 来源概览 */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-lg border p-4">
                 <div className="text-xs text-muted-foreground">AI 来源会话数（提及频率代理）</div>
@@ -236,6 +237,48 @@ export default async function SEOPage({
                 )}
               </div>
             </div>
+
+            {/* AI 引流落地页（话题推断） */}
+            {(geo?.aiLandingPages?.length ?? 0) > 0 && (
+              <div>
+                <div className="mb-2 text-sm font-medium">AI 引流落地页（话题推断）</div>
+                <div className="text-xs text-muted-foreground mb-3">用户从 AI 工具点击进入的页面，反映 AI 推荐的内容方向</div>
+                <div className="space-y-1.5">
+                  {(geo?.aiLandingPages ?? []).slice(0, 15).map((row, i) => (
+                    <div key={i} className="flex items-center justify-between rounded border px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-600 font-mono">{row.source}</span>
+                        <span className="truncate text-muted-foreground">{row.path}</span>
+                      </div>
+                      <span className="shrink-0 pl-2 font-medium">{row.sessions.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI Referrer 关键词 */}
+            {(geo?.aiReferrerKeywords?.length ?? 0) > 0 ? (
+              <div>
+                <div className="mb-2 text-sm font-medium">AI 搜索关键词（从 Referrer URL 提取）</div>
+                <div className="text-xs text-muted-foreground mb-3">用户在 AI 工具中输入的搜索词（仅部分 AI 工具会传递此数据）</div>
+                <div className="space-y-1.5">
+                  {(geo?.aiReferrerKeywords ?? []).slice(0, 20).map((row, i) => (
+                    <div key={i} className="flex items-center justify-between rounded border px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-600 font-mono">{row.source}</span>
+                        <span className="truncate">{row.keyword}</span>
+                      </div>
+                      <span className="shrink-0 pl-2 font-medium">{row.count.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (geo?.aiMentions ?? 0) > 0 ? (
+              <div className="rounded-lg border border-dashed p-4 text-xs text-muted-foreground">
+                AI 来源流量已检测到，但所有 AI 工具均未在 Referrer URL 中传递搜索关键词（这是正常现象，ChatGPT/Claude 等通常不传递）。可通过上方落地页推断用户搜索意图。
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

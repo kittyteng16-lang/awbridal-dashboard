@@ -260,6 +260,8 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
     aiMentions: number;
     aiShare: string;
     topAISources: { source: string; sessions: number }[];
+    aiLandingPages: { path: string; sessions: number; source: string }[];
+    aiReferrerKeywords: { keyword: string; source: string; count: number }[];
   };
 }> {
   try {
@@ -269,7 +271,7 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
       : { startDate: `${days}daysAgo`, endDate: "yesterday" };
     const prevWindow = window ? getPreviousWindow(window.start, window.end) : null;
 
-    const [landingRows, referralRows] = await Promise.all([
+    const [landingRows, referralRows, aiLandingRows, aiReferrerRows] = await Promise.all([
       runReport({
         dateRanges: [thisRange],
         dimensions: [{ name: "landingPagePlusQueryString" }],
@@ -288,6 +290,36 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
         metrics: [{ name: "sessions" }, { name: "engagedSessions" }],
         orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
         limit: 200,
+      }),
+      // AI 来源落地页（推断话题）
+      runReport({
+        dateRanges: [thisRange],
+        dimensions: [{ name: "sessionSource" }, { name: "landingPage" }],
+        metrics: [{ name: "sessions" }],
+        dimensionFilter: {
+          orGroup: {
+            expressions: AI_SOURCE_PATTERNS.map((p) => ({
+              filter: { fieldName: "sessionSource", stringFilter: { matchType: "CONTAINS", value: p } },
+            })),
+          },
+        },
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 30,
+      }),
+      // Perplexity pageReferrer 关键词提取
+      runReport({
+        dateRanges: [thisRange],
+        dimensions: [{ name: "sessionSource" }, { name: "pageReferrer" }],
+        metrics: [{ name: "sessions" }],
+        dimensionFilter: {
+          orGroup: {
+            expressions: AI_SOURCE_PATTERNS.map((p) => ({
+              filter: { fieldName: "sessionSource", stringFilter: { matchType: "CONTAINS", value: p } },
+            })),
+          },
+        },
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 50,
       }),
     ]);
 
@@ -346,6 +378,32 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
     const aiMentions = aiSources.reduce((sum, r) => sum + r.sessions, 0);
     const aiShare = `${totalReferralSessions ? ((aiMentions / totalReferralSessions) * 100).toFixed(1) : "0.0"}%`;
 
+    // AI 落地页
+    const aiLandingPages = aiLandingRows.map((row) => ({
+      source: row.dimensionValues[0]?.value || "",
+      path: (row.dimensionValues[1]?.value || "/").split("?")[0].slice(0, 80),
+      sessions: +row.metricValues[0].value,
+    })).filter((r) => r.sessions > 0);
+
+    // 从 pageReferrer URL 提取关键词（Perplexity/ChatGPT 有时带 ?q= 或 /search/）
+    const aiReferrerKeywords: { keyword: string; source: string; count: number }[] = [];
+    for (const row of aiReferrerRows) {
+      const source = row.dimensionValues[0]?.value || "";
+      const referrer = row.dimensionValues[1]?.value || "";
+      const count = +row.metricValues[0].value;
+      if (!referrer || referrer === "(not set)") continue;
+      // 提取 ?q=、?query=、/search/ 后的词
+      const qMatch = referrer.match(/[?&](?:q|query|search)=([^&]+)/i);
+      const pathMatch = referrer.match(/\/search\/([^/?#]+)/i);
+      const raw = qMatch?.[1] || pathMatch?.[1];
+      if (raw) {
+        try {
+          const keyword = decodeURIComponent(raw.replace(/\+/g, " ")).trim().slice(0, 100);
+          if (keyword) aiReferrerKeywords.push({ keyword, source, count });
+        } catch { /* ignore malformed */ }
+      }
+    }
+
     return {
       indexing: {
         landingBounce: `${landingBounceRaw.toFixed(1)}%`,
@@ -360,13 +418,15 @@ export async function fetchSEOGA4SignalsByWindow(days: number = 30, window?: Dat
         aiMentions,
         aiShare,
         topAISources: aiSources.map((s) => ({ source: s.domain, sessions: s.sessions })),
+        aiLandingPages,
+        aiReferrerKeywords,
       },
     };
   } catch {
     return {
       indexing: { landingBounce: "—", topLandingPages: [] },
       backlinks: { newDomains: 0, qualityRate: "0.0%", topReferrals: [] },
-      geo: { aiMentions: 0, aiShare: "0.0%", topAISources: [] },
+      geo: { aiMentions: 0, aiShare: "0.0%", topAISources: [], aiLandingPages: [], aiReferrerKeywords: [] },
     };
   }
 }

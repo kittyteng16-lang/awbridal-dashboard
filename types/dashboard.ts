@@ -76,6 +76,16 @@ export interface SEOData {
       source: string;
       sessions: number;
     }[];
+    aiLandingPages: {
+      path: string;
+      sessions: number;
+      source: string;
+    }[];
+    aiReferrerKeywords: {
+      keyword: string;
+      source: string;
+      count: number;
+    }[];
   };
 }
 
