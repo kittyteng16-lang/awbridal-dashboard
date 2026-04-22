@@ -5,17 +5,16 @@ import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Badge } from "@/components/ui/badge";
 import { DateRangeSelector } from "@/components/common/DateRangeSelector";
-import { getRangeDays, getRangeLabel, type DateRange } from "@/lib/date-range";
-import { fetchTrafficData } from "@/lib/ga4";
+import { resolveDateRange } from "@/lib/date-range";
+import { fetchTrafficDataByWindow } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
 import type { TrafficData } from "@/types/dashboard";
 
-async function getTraffic(days: number): Promise<TrafficData | null> {
+async function getTraffic(days: number, cacheKey: string, window?: { start: string; end: string }): Promise<TrafficData | null> {
   try {
-    const cacheKey = `traffic_${days}d`;
     const cached = await getCached<TrafficData>(cacheKey);
     if (cached) return cached;
-    const data = await fetchTrafficData(days);
+    const data = await fetchTrafficDataByWindow(days, window);
     await setCached(cacheKey, data);
     return data;
   } catch { return null; }
@@ -24,18 +23,23 @@ async function getTraffic(days: number): Promise<TrafficData | null> {
 export default async function TrafficPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; start?: string; end?: string }>;
 }) {
   const params = await searchParams;
-  const range = (params.range as DateRange) || "30d";
-  const days = getRangeDays(range);
-  const rangeLabel = getRangeLabel(range);
+  const resolved = resolveDateRange(params, "30d");
+  const cacheKey = resolved.isCustom
+    ? `traffic_custom_${resolved.start}_${resolved.end}`
+    : `traffic_${resolved.range}`;
 
-  const data = await getTraffic(days);
+  const data = await getTraffic(
+    resolved.days,
+    cacheKey,
+    resolved.start && resolved.end ? { start: resolved.start, end: resolved.end } : undefined
+  );
 
   return (
     <>
-      <Topbar title="流量分析" subtitle={`访问量与渠道分布 · GA4 · ${rangeLabel}`} />
+      <Topbar title="流量分析" subtitle={`访问量与渠道分布 · GA4 · ${resolved.label}`} />
       <main className="flex-1 p-6 space-y-5">
 
         <div className="flex justify-end">
@@ -54,7 +58,7 @@ export default async function TrafficPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>PV / UV 趋势（近30天）</CardTitle>
+                <CardTitle>PV / UV 趋势（{resolved.label}）</CardTitle>
                 <CardDescription className="mt-1">每日访问量变化</CardDescription>
               </div>
               <Badge>GA4 数据</Badge>

@@ -4,17 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { Badge } from "@/components/ui/badge";
 import { DateRangeSelector } from "@/components/common/DateRangeSelector";
-import { getRangeDays, getRangeLabel, type DateRange } from "@/lib/date-range";
-import { fetchConversionData } from "@/lib/ga4";
+import { resolveDateRange } from "@/lib/date-range";
+import { fetchConversionDataByWindow } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
 import type { ConversionData } from "@/types/dashboard";
 
-async function getConversion(days: number): Promise<ConversionData | null> {
+async function getConversion(days: number, cacheKey: string, window?: { start: string; end: string }): Promise<ConversionData | null> {
   try {
-    const cacheKey = `conversion_${days}d`;
     const cached = await getCached<ConversionData>(cacheKey);
     if (cached) return cached;
-    const data = await fetchConversionData(days);
+    const data = await fetchConversionDataByWindow(days, window);
     await setCached(cacheKey, data);
     return data;
   } catch { return null; }
@@ -23,18 +22,23 @@ async function getConversion(days: number): Promise<ConversionData | null> {
 export default async function ConversionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; start?: string; end?: string }>;
 }) {
   const params = await searchParams;
-  const range = (params.range as DateRange) || "30d";
-  const days = getRangeDays(range);
-  const rangeLabel = getRangeLabel(range);
+  const resolved = resolveDateRange(params, "30d");
+  const cacheKey = resolved.isCustom
+    ? `conversion_custom_${resolved.start}_${resolved.end}`
+    : `conversion_${resolved.range}`;
 
-  const data = await getConversion(days);
+  const data = await getConversion(
+    resolved.days,
+    cacheKey,
+    resolved.start && resolved.end ? { start: resolved.start, end: resolved.end } : undefined
+  );
 
   return (
     <>
-      <Topbar title="转化分析" subtitle={`转化漏斗与渠道效果 · GA4 · ${rangeLabel}`} />
+      <Topbar title="转化分析" subtitle={`转化漏斗与渠道效果 · GA4 · ${resolved.label}`} />
       <main className="flex-1 p-6 space-y-5">
 
         <div className="flex justify-end">
@@ -53,7 +57,7 @@ export default async function ConversionPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>转化漏斗（近30天）</CardTitle>
+                <CardTitle>转化漏斗（{resolved.label}）</CardTitle>
                 <CardDescription className="mt-1">各环节流失率分析</CardDescription>
               </div>
               <Badge>GA4 数据</Badge>
@@ -100,7 +104,7 @@ export default async function ConversionPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>购买 / 加购趋势（近30天）</CardTitle>
+                <CardTitle>购买 / 加购趋势（{resolved.label}）</CardTitle>
                 <CardDescription className="mt-1">每日转化事件数量变化</CardDescription>
               </div>
               <Badge variant="secondary">GA4 事件</Badge>

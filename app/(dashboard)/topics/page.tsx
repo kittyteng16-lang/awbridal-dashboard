@@ -2,7 +2,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DateRangeSelector } from "@/components/common/DateRangeSelector";
-import { getRedditTimeParam, getRangeLabel, type DateRange } from "@/lib/date-range";
+import { getRedditTimeParamByDays, getTrendsTimeParamByDays, resolveDateRange } from "@/lib/date-range";
 import { fetchGoogleTrends, fetchRedditTrends } from "@/lib/trends";
 import type { TrendingTopic } from "@/lib/trends";
 
@@ -18,32 +18,15 @@ async function getTopicsData(trendsTime: string, redditTime: string) {
   };
 }
 
-// 转换时间范围到 Google Trends 格式
-function getTrendsTimeParam(range: DateRange): string {
-  switch (range) {
-    case "7d":
-      return "now 7-d";
-    case "30d":
-      return "today 1-m";
-    case "90d":
-      return "today 3-m";
-    case "1y":
-      return "today 12-m";
-    default:
-      return "today 1-m";
-  }
-}
-
 export default async function TopicsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; start?: string; end?: string }>;
 }) {
   const params = await searchParams;
-  const range = (params.range as DateRange) || "30d";
-  const rangeLabel = getRangeLabel(range);
-  const trendsTime = getTrendsTimeParam(range);
-  const redditTime = getRedditTimeParam(range);
+  const resolved = resolveDateRange(params, "30d");
+  const trendsTime = getTrendsTimeParamByDays(resolved.days);
+  const redditTime = getRedditTimeParamByDays(resolved.days);
 
   const { trends, reddit } = await getTopicsData(trendsTime, redditTime);
 
@@ -51,7 +34,7 @@ export default async function TopicsPage({
 
   return (
     <>
-      <Topbar title="热门话题" subtitle={`外部热点与品牌声量 · Google Trends + Reddit · ${rangeLabel}`} />
+      <Topbar title="热门话题" subtitle={`外部热点与品牌声量 · Google Trends + Reddit · ${resolved.label}`} />
       <main className="flex-1 p-6 space-y-5">
 
         <div className="flex justify-end">
@@ -64,7 +47,7 @@ export default async function TopicsPage({
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>关键词搜索热度</CardTitle>
-                <CardDescription className="mt-1">近30天 Google Trends 搜索指数（0–100）</CardDescription>
+                <CardDescription className="mt-1">{resolved.label} Google Trends 搜索指数（0–100）</CardDescription>
               </div>
               <Badge variant="outline">Google Trends</Badge>
             </div>
@@ -102,7 +85,7 @@ export default async function TopicsPage({
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>婚纱行业 Reddit 热帖</CardTitle>
-                <CardDescription className="mt-1">本周 wedding dress / bride 热门讨论</CardDescription>
+                <CardDescription className="mt-1">{resolved.label} wedding dress / bride 热门讨论</CardDescription>
               </div>
               <Badge variant="outline">Reddit</Badge>
             </div>

@@ -44,6 +44,39 @@ export interface SEOData {
     ctr: string;
     position: number;
   }[];
+  brandVsNonBrand?: {
+    brandClicks: number;
+    nonBrandClicks: number;
+    brandShare: number;
+    brandChange: string;
+    nonBrandChange: string;
+  };
+  indexing?: {
+    indexedPages: number;
+    landingBounce: string;
+    topLandingPages: {
+      path: string;
+      sessions: number;
+      bounce: string;
+    }[];
+  };
+  backlinks?: {
+    newDomains: number;
+    qualityRate: string;
+    topReferrals: {
+      domain: string;
+      sessions: number;
+      engagementRate: string;
+    }[];
+  };
+  geo?: {
+    aiMentions: number;
+    aiShare: string;
+    topAISources: {
+      source: string;
+      sessions: number;
+    }[];
+  };
 }
 
 // ── 总览 ──────────────────────────────────────────────
