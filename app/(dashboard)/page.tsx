@@ -86,7 +86,7 @@ function generateBusinessInsights(data: OverviewData | null) {
 
   // 流量来源分析
   if (data.sources && data.sources.length > 0) {
-    const organicSource = data.sources.find(s => s.label.includes('Organic') || s.label.includes('自然'));
+    const organicSource = data.sources.find(s => s.name.includes('Organic') || s.name.includes('自然'));
     if (organicSource && organicSource.value > 40) {
       insights.push(`💡 自然流量占比健康（${organicSource.value}%），继续保持 SEO 优化`);
     } else if (organicSource && organicSource.value < 20) {
