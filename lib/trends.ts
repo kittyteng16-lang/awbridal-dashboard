@@ -1,7 +1,3 @@
-/**
- * Google Trends 非官方 API
- */
-
 export interface TrendingTopic {
   title: string;
   traffic: string;
@@ -10,7 +6,34 @@ export interface TrendingTopic {
   url?: string;
 }
 
-export async function fetchGoogleTrends(keywords: string[], timeRange = "today 1-m"): Promise<{ keyword: string; interest: number }[]> {
+export interface KeywordTrend {
+  keyword: string;
+  avgInterest: number;
+  timeline: { date: string; value: number }[];
+}
+
+export interface TrendGroup {
+  groupName: string;
+  keywords: KeywordTrend[];
+}
+
+// 3 groups × 5 keywords = 15 keywords, ~90 SerpAPI calls/month with 24h cache
+export const TREND_GROUPS: { groupName: string; keywords: string[] }[] = [
+  {
+    groupName: "核心婚纱",
+    keywords: ["wedding dress", "bridal gown", "wedding gown", "prom dress", "bridesmaid dress"],
+  },
+  {
+    groupName: "婚纱款式",
+    keywords: ["lace wedding dress", "mermaid wedding dress", "ball gown wedding dress", "bohemian wedding dress", "plus size wedding dress"],
+  },
+  {
+    groupName: "Prom & 礼服",
+    keywords: ["prom dress 2025", "homecoming dress", "evening gown", "formal dress", "cheap prom dress"],
+  },
+];
+
+async function fetchTrendGroup(keywords: string[], timeRange: string): Promise<KeywordTrend[]> {
   const apiKey = process.env.SERPAPI_KEY;
   if (!apiKey) throw new Error("SERPAPI_KEY not configured");
 
@@ -24,23 +47,43 @@ export async function fetchGoogleTrends(keywords: string[], timeRange = "today 1
   });
 
   const res = await fetch(`https://serpapi.com/search.json?${params}`, {
-    next: { revalidate: 7200 },
+    next: { revalidate: 86400 }, // 24h cache
   });
-  if (!res.ok) throw new Error(`SerpAPI Google Trends ${res.status}`);
+  if (!res.ok) throw new Error(`SerpAPI ${res.status}`);
   const data = await res.json();
 
-  const timeline: { date: string; values: { query: string; value: string }[] }[] =
+  const timeline: { date: string; values: { query: string; value: string | number }[] }[] =
     data.interest_over_time?.timeline_data ?? [];
-  if (!timeline.length) return [];
 
   return keywords.map((keyword) => {
-    const values = timeline.map((point) => {
+    const points = timeline.map((point) => {
       const entry = point.values.find((v) => v.query === keyword);
-      return parseInt(entry?.value ?? "0", 10);
+      const raw = entry?.value ?? 0;
+      const value = typeof raw === "number" ? raw : parseInt(String(raw), 10);
+      return { date: point.date?.slice(0, 10) ?? "", value: isNaN(value) ? 0 : value };
     });
-    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-    return { keyword, interest: avg };
+    const nonZero = points.filter((p) => p.value > 0);
+    const avg = nonZero.length
+      ? Math.round(nonZero.reduce((a, b) => a + b.value, 0) / nonZero.length)
+      : 0;
+    return { keyword, avgInterest: avg, timeline: points };
   });
+}
+
+export async function fetchAllTrendGroups(timeRange = "today 1-m"): Promise<TrendGroup[]> {
+  const results = await Promise.allSettled(
+    TREND_GROUPS.map((g) => fetchTrendGroup(g.keywords, timeRange))
+  );
+  return TREND_GROUPS.map((g, i) => ({
+    groupName: g.groupName,
+    keywords: results[i].status === "fulfilled" ? results[i].value : [],
+  }));
+}
+
+// Legacy export kept for compatibility
+export async function fetchGoogleTrends(keywords: string[], timeRange = "today 1-m"): Promise<{ keyword: string; interest: number }[]> {
+  const rows = await fetchTrendGroup(keywords, timeRange);
+  return rows.map((r) => ({ keyword: r.keyword, interest: r.avgInterest }));
 }
 
 const BRIDAL_SUBREDDITS = [
