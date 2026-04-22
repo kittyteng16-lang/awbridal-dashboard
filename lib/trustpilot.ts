@@ -53,8 +53,8 @@ export async function fetchTrustpilotReviews(
 
     const html = await response.text();
 
-    // 从HTML中提取JSON数据
-    const dataMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s);
+    // 从HTML中提取JSON数据 (使用[\s\S]替代.以兼容ES2017)
+    const dataMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (!dataMatch) {
       throw new Error('无法找到Trustpilot数据');
     }
