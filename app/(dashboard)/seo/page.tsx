@@ -3,27 +3,41 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRangeDays, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchSEOData } from "@/lib/gsc";
 import { getCached, setCached } from "@/lib/supabase";
 import type { SEOData } from "@/types/dashboard";
 
-async function getSEO(): Promise<SEOData | null> {
+async function getSEO(days: number): Promise<SEOData | null> {
   try {
-    const cached = await getCached<SEOData>("seo");
+    const cacheKey = `seo_${days}d`;
+    const cached = await getCached<SEOData>(cacheKey);
     if (cached) return cached;
-    const data = await fetchSEOData();
-    await setCached("seo", data);
+    const data = await fetchSEOData(days);
+    await setCached(cacheKey, data);
     return data;
   } catch { return null; }
 }
 
-export default async function SEOPage() {
-  const data = await getSEO();
+export default async function SEOPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "30d";
+  const days = getRangeDays(range);
+  const rangeLabel = getRangeLabel(range);
+
+  const data = await getSEO(days);
 
   return (
     <>
-      <Topbar title="SEO 监控" subtitle="关键词排名 · 搜索流量 · Google Search Console" />
+      <Topbar title="SEO 监控" subtitle={`关键词排名 · 搜索流量 · GSC · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KPICard label="自然搜索点击" metric={data?.kpi.clicks      ?? { value:"—", change:"—", up:true }} icon="🖱️" accent="purple" />

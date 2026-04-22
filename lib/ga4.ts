@@ -17,11 +17,12 @@ async function runReport(body: object): Promise<GA4Row[]> {
 }
 
 // ── 流量数据 ──────────────────────────────────────────
-export async function fetchTrafficData(): Promise<TrafficData> {
+export async function fetchTrafficData(days: number = 30): Promise<TrafficData> {
+  const doubleDays = days * 2;
   const [dailyRows, summaryRows, sourceRows, pageRows] = await Promise.all([
-    // 近30天每日趋势
+    // 近N天每日趋势
     runReport({
-      dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }],
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
       dimensions: [{ name: "date" }],
       metrics: [
         { name: "screenPageViews" }, { name: "totalUsers" },
@@ -29,13 +30,13 @@ export async function fetchTrafficData(): Promise<TrafficData> {
         { name: "averageSessionDuration" },
       ],
       orderBys: [{ dimension: { dimensionName: "date" } }],
-      limit: 30,
+      limit: days + 10,
     }),
-    // 本月 vs 上月汇总
+    // 本期 vs 上期汇总
     runReport({
       dateRanges: [
-        { startDate: "30daysAgo", endDate: "yesterday", name: "this" },
-        { startDate: "60daysAgo", endDate: "31daysAgo", name: "last" },
+        { startDate: `${days}daysAgo`, endDate: "yesterday", name: "this" },
+        { startDate: `${doubleDays}daysAgo`, endDate: `${days + 1}daysAgo`, name: "last" },
       ],
       metrics: [
         { name: "screenPageViews" }, { name: "totalUsers" },
@@ -45,7 +46,7 @@ export async function fetchTrafficData(): Promise<TrafficData> {
     }),
     // 流量来源
     runReport({
-      dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }],
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
       dimensions: [{ name: "sessionDefaultChannelGroup" }],
       metrics: [{ name: "sessions" }],
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
@@ -53,7 +54,7 @@ export async function fetchTrafficData(): Promise<TrafficData> {
     }),
     // Top 10 页面
     runReport({
-      dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }],
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
       dimensions: [{ name: "pagePath" }],
       metrics: [
         { name: "screenPageViews" }, { name: "totalUsers" }, { name: "bounceRate" },
@@ -98,16 +99,17 @@ export async function fetchTrafficData(): Promise<TrafficData> {
 }
 
 // ── 转化漏斗数据 ──────────────────────────────────────
-export async function fetchConversionData(): Promise<ConversionData> {
+export async function fetchConversionData(days: number = 30): Promise<ConversionData> {
   const FUNNEL_EVENTS = ["view_item", "add_to_cart", "begin_checkout", "checkout", "purchase"];
   const FUNNEL_LABELS = ["浏览商品", "加入购物车", "发起结账", "提交订单", "完成购买"];
+  const doubleDays = days * 2;
 
   const [summaryRows, trendRows] = await Promise.all([
     // 本期 vs 上期 各转化事件汇总
     runReport({
       dateRanges: [
-        { startDate: "30daysAgo", endDate: "yesterday", name: "this" },
-        { startDate: "60daysAgo", endDate: "31daysAgo", name: "last" },
+        { startDate: `${days}daysAgo`, endDate: "yesterday", name: "this" },
+        { startDate: `${doubleDays}daysAgo`, endDate: `${days + 1}daysAgo`, name: "last" },
       ],
       dimensions: [{ name: "eventName" }],
       metrics: [{ name: "eventCount" }],
@@ -118,9 +120,9 @@ export async function fetchConversionData(): Promise<ConversionData> {
         },
       },
     }),
-    // 近30天每日 purchase / add_to_cart 趋势
+    // 近N天每日 purchase / add_to_cart 趋势
     runReport({
-      dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }],
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
       dimensions: [{ name: "date" }, { name: "eventName" }],
       metrics: [{ name: "eventCount" }],
       dimensionFilter: {
@@ -130,7 +132,7 @@ export async function fetchConversionData(): Promise<ConversionData> {
         },
       },
       orderBys: [{ dimension: { dimensionName: "date" } }],
-      limit: 200,
+      limit: days * 10,
     }),
   ]);
 

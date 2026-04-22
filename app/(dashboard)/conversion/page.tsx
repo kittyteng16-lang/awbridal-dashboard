@@ -3,27 +3,41 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRangeDays, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchConversionData } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
 import type { ConversionData } from "@/types/dashboard";
 
-async function getConversion(): Promise<ConversionData | null> {
+async function getConversion(days: number): Promise<ConversionData | null> {
   try {
-    const cached = await getCached<ConversionData>("conversion");
+    const cacheKey = `conversion_${days}d`;
+    const cached = await getCached<ConversionData>(cacheKey);
     if (cached) return cached;
-    const data = await fetchConversionData();
-    await setCached("conversion", data);
+    const data = await fetchConversionData(days);
+    await setCached(cacheKey, data);
     return data;
   } catch { return null; }
 }
 
-export default async function ConversionPage() {
-  const data = await getConversion();
+export default async function ConversionPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "30d";
+  const days = getRangeDays(range);
+  const rangeLabel = getRangeLabel(range);
+
+  const data = await getConversion(days);
 
   return (
     <>
-      <Topbar title="转化分析" subtitle="转化漏斗与渠道效果 · Google Analytics 4" />
+      <Topbar title="转化分析" subtitle={`转化漏斗与渠道效果 · GA4 · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KPICard label="完成购买"    metric={data?.kpi.purchases  ?? { value:"—", change:"—", up:true }} icon="🛍️" accent="purple" />

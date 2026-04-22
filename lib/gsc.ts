@@ -24,20 +24,23 @@ function gscDate(daysAgo: number): string {
   return format(subDays(new Date(), daysAgo), "yyyy-MM-dd");
 }
 
-export async function fetchSEOData(): Promise<SEOData> {
+export async function fetchSEOData(days: number = 30): Promise<SEOData> {
+  const startDaysAgo = days + 1; // GSC 有2天延迟
+  const doubleDays = days * 2;
+
   const [dailyRows, thisRows, lastRows, keywordRows] = await Promise.all([
-    // 近30天每日趋势（GSC 有2天延迟）
+    // 近N天每日趋势（GSC 有2天延迟）
     queryGSC({
-      startDate: gscDate(31), endDate: gscDate(2),
-      dimensions: ["date"], rowLimit: 30,
+      startDate: gscDate(startDaysAgo), endDate: gscDate(2),
+      dimensions: ["date"], rowLimit: days + 10,
     }),
-    // 本月汇总
-    queryGSC({ startDate: gscDate(31), endDate: gscDate(2), dimensions: [] }),
-    // 上月汇总
-    queryGSC({ startDate: gscDate(61), endDate: gscDate(32), dimensions: [] }),
+    // 本期汇总
+    queryGSC({ startDate: gscDate(startDaysAgo), endDate: gscDate(2), dimensions: [] }),
+    // 上期汇总
+    queryGSC({ startDate: gscDate(doubleDays + 1), endDate: gscDate(days + 2), dimensions: [] }),
     // Top 关键词
     queryGSC({
-      startDate: gscDate(31), endDate: gscDate(2),
+      startDate: gscDate(startDaysAgo), endDate: gscDate(2),
       dimensions: ["query"],
       orderBy: [{ fieldName: "clicks", sortOrder: "DESCENDING" }],
       rowLimit: 15,

@@ -4,27 +4,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRangeDays, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchTrafficData } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
 import type { TrafficData } from "@/types/dashboard";
 
-async function getTraffic(): Promise<TrafficData | null> {
+async function getTraffic(days: number): Promise<TrafficData | null> {
   try {
-    const cached = await getCached<TrafficData>("traffic");
+    const cacheKey = `traffic_${days}d`;
+    const cached = await getCached<TrafficData>(cacheKey);
     if (cached) return cached;
-    const data = await fetchTrafficData();
-    await setCached("traffic", data);
+    const data = await fetchTrafficData(days);
+    await setCached(cacheKey, data);
     return data;
   } catch { return null; }
 }
 
-export default async function TrafficPage() {
-  const data = await getTraffic();
+export default async function TrafficPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "30d";
+  const days = getRangeDays(range);
+  const rangeLabel = getRangeLabel(range);
+
+  const data = await getTraffic(days);
 
   return (
     <>
-      <Topbar title="流量分析" subtitle="访问量与渠道分布 · Google Analytics 4" />
+      <Topbar title="流量分析" subtitle={`访问量与渠道分布 · GA4 · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KPICard label="页面浏览量 PV" metric={data?.kpi.pv       ?? { value:"—", change:"—", up:true }} icon="📄" accent="purple" />

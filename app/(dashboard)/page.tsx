@@ -5,18 +5,20 @@ import { AreaLineChart } from "@/components/charts/AreaLineChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { RadarChart } from "@/components/charts/RadarChart";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRangeDays, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchTrafficData, fetchOverviewHealth } from "@/lib/ga4";
 import { fetchSEOData } from "@/lib/gsc";
 import { getCached, setCached } from "@/lib/supabase";
 import type { OverviewData } from "@/types/dashboard";
 
-async function getOverview(): Promise<OverviewData | null> {
+async function getOverview(days: number): Promise<OverviewData | null> {
   try {
-    const cached = await getCached<OverviewData>("overview");
+    const cacheKey = `overview_${days}d`;
+    const cached = await getCached<OverviewData>(cacheKey);
     if (cached) return cached;
     const [traffic, seo, health] = await Promise.all([
-      fetchTrafficData(),
-      fetchSEOData(),
+      fetchTrafficData(days),
+      fetchSEOData(days),
       fetchOverviewHealth(),
     ]);
     const data: OverviewData = {
@@ -30,7 +32,7 @@ async function getOverview(): Promise<OverviewData | null> {
       sources: traffic.sources,
       health,
     };
-    await setCached("overview", data);
+    await setCached(cacheKey, data);
     return data;
   } catch {
     return null;
@@ -108,19 +110,30 @@ function generateBusinessInsights(data: OverviewData | null) {
     }
   }
 
-  const summary = `近30天数据总览 · ${insights.length} 项关键发现`;
-
-  return { summary, insights, status };
+  return { insights, status };
 }
 
-export default async function OverviewPage() {
-  const data = await getOverview();
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "30d";
+  const days = getRangeDays(range);
+  const rangeLabel = getRangeLabel(range);
+
+  const data = await getOverview(days);
   const analysis = generateBusinessInsights(data);
 
   return (
     <>
-      <Topbar title="总览" subtitle="业务数据全景 · GA4 + GSC 实时数据" />
+      <Topbar title="总览" subtitle={`业务数据全景 · GA4 + GSC · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        {/* 时间范围选择器 */}
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         {/* 业务诊断分析 */}
         <Card className={
@@ -135,7 +148,7 @@ export default async function OverviewPage() {
               </span>
               <div>
                 <CardTitle>业务诊断分析</CardTitle>
-                <CardDescription className="mt-1">{analysis.summary}</CardDescription>
+                <CardDescription className="mt-1">{rangeLabel}数据总览 · {analysis.insights.length} 项关键发现</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -164,7 +177,7 @@ export default async function OverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>核心指标趋势（近30天）</CardTitle>
+                <CardTitle>核心指标趋势（{rangeLabel}）</CardTitle>
                 <CardDescription className="mt-1">PV / UV 每日走势</CardDescription>
               </div>
               <Badge variant="default">GA4 实时</Badge>

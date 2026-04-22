@@ -10,11 +10,11 @@ export interface TrendingTopic {
   url?: string;
 }
 
-export async function fetchGoogleTrends(keywords: string[]): Promise<{ keyword: string; interest: number }[]> {
+export async function fetchGoogleTrends(keywords: string[], timeRange = "today 1-m"): Promise<{ keyword: string; interest: number }[]> {
   const req = keywords.map((keyword) => ({
     keyword,
     geo: "",
-    time: "today 1-m",
+    time: timeRange,
   }));
   const params = new URLSearchParams({
     hl: "en-US",
@@ -40,7 +40,7 @@ export async function fetchGoogleTrends(keywords: string[]): Promise<{ keyword: 
   const dataParams = new URLSearchParams({
     hl: "en-US",
     tz: "480",
-    req: JSON.stringify({ time: "today 1-m", resolution: "WEEK", locale: "en-US", comparisonItem: req.map((r) => ({ ...r, complexKeywordsRestriction: null })), requestOptions: { property: "", backend: "IZG", category: 0 } }),
+    req: JSON.stringify({ time: timeRange, resolution: "WEEK", locale: "en-US", comparisonItem: req.map((r) => ({ ...r, complexKeywordsRestriction: null })), requestOptions: { property: "", backend: "IZG", category: 0 } }),
     token: timeWidget.token,
     csv: "0",
   });
@@ -62,9 +62,9 @@ export async function fetchGoogleTrends(keywords: string[]): Promise<{ keyword: 
   });
 }
 
-export async function fetchRedditTrends(topic: string, limit = 10): Promise<TrendingTopic[]> {
+export async function fetchRedditTrends(topic: string, limit = 10, timeRange = "week"): Promise<TrendingTopic[]> {
   const encoded = encodeURIComponent(topic);
-  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=top&limit=${limit}&t=week`;
+  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=top&limit=${limit}&t=${timeRange}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "awbridal-dashboard/1.0" },
     next: { revalidate: 3600 },

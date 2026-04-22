@@ -1,13 +1,14 @@
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRedditTimeParam, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchGoogleTrends, fetchRedditTrends } from "@/lib/trends";
 import type { TrendingTopic } from "@/lib/trends";
 
-async function getTopicsData() {
+async function getTopicsData(trendsTime: string, redditTime: string) {
   const [trendsData, redditTopics] = await Promise.allSettled([
-    fetchGoogleTrends(["aw bridal", "wedding dress", "bridal gown", "wedding shop"]),
-    fetchRedditTrends("wedding dress bride", 10),
+    fetchGoogleTrends(["aw bridal", "wedding dress", "bridal gown", "wedding shop"], trendsTime),
+    fetchRedditTrends("wedding dress bride", 10, redditTime),
   ]);
 
   return {
@@ -16,15 +17,44 @@ async function getTopicsData() {
   };
 }
 
-export default async function TopicsPage() {
-  const { trends, reddit } = await getTopicsData();
+// 转换时间范围到 Google Trends 格式
+function getTrendsTimeParam(range: DateRange): string {
+  switch (range) {
+    case "7d":
+      return "now 7-d";
+    case "30d":
+      return "today 1-m";
+    case "90d":
+      return "today 3-m";
+    case "1y":
+      return "today 12-m";
+    default:
+      return "today 1-m";
+  }
+}
+
+export default async function TopicsPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "30d";
+  const rangeLabel = getRangeLabel(range);
+  const trendsTime = getTrendsTimeParam(range);
+  const redditTime = getRedditTimeParam(range);
+
+  const { trends, reddit } = await getTopicsData(trendsTime, redditTime);
 
   const maxInterest = Math.max(...trends.map((t) => t.interest), 1);
 
   return (
     <>
-      <Topbar title="热门话题" subtitle="外部热点与品牌声量 · Google Trends + Reddit" />
+      <Topbar title="热门话题" subtitle={`外部热点与品牌声量 · Google Trends + Reddit · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         {/* Google Trends */}
         <Card>

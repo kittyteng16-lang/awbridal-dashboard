@@ -1,12 +1,13 @@
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DateRangeSelector, getRedditTimeParam, getRangeLabel, type DateRange } from "@/components/common/DateRangeSelector";
 import { fetchRedditMentions } from "@/lib/reddit";
 import type { RedditResult } from "@/lib/reddit";
 
-async function getReviews(): Promise<RedditResult[]> {
+async function getReviews(timeParam: string): Promise<RedditResult[]> {
   try {
-    const results = await fetchRedditMentions('"aw bridal" OR "awbridal"', 50);
+    const results = await fetchRedditMentions('"aw bridal" OR "awbridal"', 50, timeParam);
     return results;
   } catch {
     return [];
@@ -90,8 +91,16 @@ const SENTIMENT_CONFIG = {
   negative: { label: "负面", className: "bg-red-100 text-red-600 border-red-200" },
 };
 
-export default async function ReviewsPage() {
-  const reviews = await getReviews();
+export default async function ReviewsPage({
+  searchParams,
+}: {
+  searchParams: { range?: string };
+}) {
+  const range = (searchParams.range as DateRange) || "1y";
+  const timeParam = getRedditTimeParam(range);
+  const rangeLabel = getRangeLabel(range);
+
+  const reviews = await getReviews(timeParam);
 
   const positive = reviews.filter((r) => r.sentiment === "positive").length;
   const negative = reviews.filter((r) => r.sentiment === "negative").length;
@@ -102,8 +111,12 @@ export default async function ReviewsPage() {
 
   return (
     <>
-      <Topbar title="用户评价" subtitle="多平台口碑监控 · Reddit 近一年品牌提及" />
+      <Topbar title="用户评价" subtitle={`多平台口碑监控 · Reddit · ${rangeLabel}`} />
       <main className="flex-1 p-6 space-y-5">
+
+        <div className="flex justify-end">
+          <DateRangeSelector />
+        </div>
 
         {/* 诊断性分析 */}
         <Card className={
@@ -160,7 +173,7 @@ export default async function ReviewsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Reddit 品牌提及</CardTitle>
-                <CardDescription className="mt-1">近一年提及"aw bridal"的帖子（按时间倒序）</CardDescription>
+                <CardDescription className="mt-1">{rangeLabel}提及"aw bridal"的帖子（按时间倒序）</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Badge variant="outline">Reddit</Badge>
