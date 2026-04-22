@@ -62,18 +62,33 @@ export async function fetchGoogleTrends(keywords: string[], timeRange = "today 1
   });
 }
 
-export async function fetchRedditTrends(topic: string, limit = 10, timeRange = "week"): Promise<TrendingTopic[]> {
-  const encoded = encodeURIComponent(topic);
-  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=top&limit=${limit}&t=${timeRange}`;
+const BRIDAL_SUBREDDITS = [
+  "weddingplanning",
+  "weddingdress",
+  "bridal",
+  "wedding",
+  "weddingwow",
+  "prom",
+  "Prom",
+  "PromdressAdvice",
+  "PromDresses",
+];
+
+export async function fetchRedditTrends(_topic: string, limit = 20, timeRange = "month"): Promise<TrendingTopic[]> {
+  const subredditStr = BRIDAL_SUBREDDITS.join("+");
+  const url = `https://www.reddit.com/r/${subredditStr}/top.json?t=${timeRange}&limit=${limit}`;
   const res = await fetch(url, {
-    headers: { "User-Agent": "awbridal-dashboard/1.0" },
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; awbridal-dashboard/1.0; +https://awbridal.com)",
+      Accept: "application/json",
+    },
     next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`Reddit trends ${res.status}`);
   const data = await res.json();
-  return data.data.children.map((c: { data: { title: string; score: number; subreddit: string; permalink: string } }) => ({
+  return data.data.children.map((c: { data: { title: string; score: number; subreddit: string; permalink: string; num_comments: number } }) => ({
     title: c.data.title,
-    traffic: `${c.data.score} upvotes`,
+    traffic: `${c.data.score.toLocaleString()} upvotes · ${c.data.num_comments} comments`,
     relatedQueries: [`r/${c.data.subreddit}`],
     source: "reddit" as const,
     url: `https://www.reddit.com${c.data.permalink}`,
