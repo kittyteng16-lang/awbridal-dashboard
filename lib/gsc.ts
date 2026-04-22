@@ -63,7 +63,7 @@ export async function fetchSEODataByWindow(days: number = 30, window?: DateWindo
       startDate: currentStart, endDate: currentEnd,
       dimensions: ["query"],
       orderBy: [{ fieldName: "clicks", sortOrder: "DESCENDING" }],
-      rowLimit: 15,
+      rowLimit: 50,
     }),
     // 品牌词 vs 非品牌词
     queryGSC({
