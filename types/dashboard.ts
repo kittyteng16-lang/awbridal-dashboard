@@ -217,6 +217,56 @@ export interface CompetitorData {
   reputation: CompetitorReputation[];
 }
 
+// ── 产品分析 ──────────────────────────────────────────
+export interface ProductMetrics {
+  views: number;
+  addToCarts: number;
+  checkouts: number;
+  purchases: number;
+  revenue: number;
+}
+
+export interface ProductFunnel {
+  step: string;
+  count: number;
+  rate: string;
+  dropOff?: string;
+}
+
+export interface ProductPerformance {
+  name: string;
+  sku?: string;
+  views: number;
+  addToCarts: number;
+  purchases: number;
+  revenue: number;
+  viewToCartRate: string;
+  cartToPurchaseRate: string;
+  overallCVR: string;
+}
+
+export interface ProductInsight {
+  type: "success" | "warning" | "danger" | "info";
+  title: string;
+  description: string;
+  recommendation: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface ProductData {
+  kpi: {
+    views: KPIMetric;
+    addToCarts: KPIMetric;
+    checkouts: KPIMetric;
+    purchases: KPIMetric;
+    avgOrderValue: KPIMetric;
+  };
+  funnel: ProductFunnel[];
+  trend: TimeSeriesPoint[];
+  topProducts: ProductPerformance[];
+  insights: ProductInsight[];
+}
+
 // ── Supabase 缓存行 ────────────────────────────────────
 export interface CacheRow {
   id: string;

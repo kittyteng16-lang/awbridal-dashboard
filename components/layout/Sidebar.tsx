@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, TrendingUp, Target, Search,
-  Star, Flame, Users, ChevronRight,
+  Star, Flame, Users, ShoppingBag, ChevronRight,
 } from "lucide-react";
 
 const NAV = [
   { href: "/",           label: "总览",     icon: LayoutDashboard, group: "监控中心" },
   { href: "/traffic",    label: "流量分析", icon: TrendingUp,       group: "监控中心" },
   { href: "/conversion", label: "转化分析", icon: Target,           group: "监控中心" },
+  { href: "/products",   label: "产品分析", icon: ShoppingBag,      group: "监控中心" },
   { href: "/seo",        label: "SEO 监控", icon: Search,           group: "外部监控" },
   { href: "/reviews",    label: "用户评价", icon: Star,             group: "外部监控", badge: 3 },
   { href: "/topics",     label: "热门话题", icon: Flame,            group: "外部监控" },
