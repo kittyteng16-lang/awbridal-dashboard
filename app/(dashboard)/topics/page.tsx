@@ -159,17 +159,6 @@ export default async function TopicsPage({
           </CardContent>
         </Card>
 
-        {/* Mention.com 占位 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Mention.com 舆情监控</CardTitle>
-              <Badge variant="warning">待接入</Badge>
-            </div>
-            <CardDescription>Mention.com 需要付费订阅，接入后可监控全网品牌提及</CardDescription>
-          </CardHeader>
-        </Card>
-
       </main>
     </>
   );
