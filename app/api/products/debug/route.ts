@@ -30,7 +30,7 @@ export async function GET(request: Request) {
           metrics: [{ name: "itemViews" }, { name: "addToCarts" }],
           limit: 5,
         };
-        const res1 = await matonPost(GA4_PATH, test1Body);
+        const res1: any = await matonPost(GA4_PATH, test1Body);
         results.tests.push({
           name: "itemName + itemId",
           success: true,
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
           orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
           limit: 10,
         };
-        const res2 = await matonPost(GA4_PATH, test2Body);
+        const res2: any = await matonPost(GA4_PATH, test2Body);
         results.tests.push({
           name: "pagePath (contains /products/)",
           success: true,
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
           orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
           limit: 20,
         };
-        const res3 = await matonPost(GA4_PATH, test3Body);
+        const res3: any = await matonPost(GA4_PATH, test3Body);
         results.tests.push({
           name: "All pagePath (top 20)",
           success: true,
