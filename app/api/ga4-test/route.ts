@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       metrics: [{ name: "itemViews" }, { name: "addToCarts" }, { name: "itemsPurchased" }],
       limit: 10,
     };
-    const res1 = await matonPost(GA4_PATH, body1);
+    const res1: any = await matonPost(GA4_PATH, body1);
     results.tests.push({
       id: 1,
       name: "E-commerce items (itemName + itemId)",
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
       limit: 20,
     };
-    const res2 = await matonPost(GA4_PATH, body2);
+    const res2: any = await matonPost(GA4_PATH, body2);
     results.tests.push({
       id: 2,
       name: 'Pages containing "/products/"',
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
       orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
       limit: 30,
     };
-    const res3 = await matonPost(GA4_PATH, body3);
+    const res3: any = await matonPost(GA4_PATH, body3);
     results.tests.push({
       id: 3,
       name: "All pages (top 30 by views)",
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
       limit: 20,
     };
-    const res4 = await matonPost(GA4_PATH, body4);
+    const res4: any = await matonPost(GA4_PATH, body4);
     results.tests.push({
       id: 4,
       name: "All events (top 20)",
