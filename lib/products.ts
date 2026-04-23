@@ -33,6 +33,8 @@ async function runReportWithPagination(body: any): Promise<GA4Row[]> {
   let offset = 0;
   const pageSize = 10000;
 
+  console.log("[Products] Starting pagination with body:", JSON.stringify(body, null, 2));
+
   while (true) {
     const r = await matonPost<GA4Response>(GA4_PATH, {
       ...body,
@@ -41,6 +43,7 @@ async function runReportWithPagination(body: any): Promise<GA4Row[]> {
     });
 
     const rows = r.rows ?? [];
+    console.log(`[Products] Page ${offset / pageSize + 1}: fetched ${rows.length} rows`);
     allRows.push(...rows);
 
     // 如果返回的行数少于 pageSize，说明已经是最后一页
@@ -78,6 +81,7 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
     : { startDate: `${days * 2}daysAgo`, endDate: `${days + 1}daysAgo` };
 
   try {
+    console.log("[Products] Fetching GA4 data for", days, "days, window:", window);
     const [summaryRows, trendRows, productDetailRows] = await Promise.all([
       // KPI 汇总（本期 vs 上期）
       runReport({
@@ -148,9 +152,11 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
     // 生成智能洞察（基于 SKU 性能）
     const insights = generateSKUInsights(kpi, topProducts);
 
+    console.log("[Products] Successfully parsed", topProducts.length, "products");
     return { kpi, funnel, trend, topProducts, insights };
   } catch (error) {
     console.error("[Products] Failed to fetch GA4 data:", error);
+    console.error("[Products] Error details:", error instanceof Error ? error.message : String(error));
     return createMockProductData();
   }
 }
