@@ -235,14 +235,23 @@ export interface ProductFunnel {
 
 export interface ProductPerformance {
   name: string;
-  sku?: string;
+  sku: string;
+  category?: string;
   views: number;
+  viewsChange?: string;
   addToCarts: number;
+  addToCartsChange?: string;
+  addToCartRate: string;
+  addToCartRateChange?: string;
+  checkouts: number;
+  checkoutsChange?: string;
   purchases: number;
+  purchasesChange?: string;
+  conversionRate: string;
+  conversionRateChange?: string;
   revenue: number;
-  viewToCartRate: string;
-  cartToPurchaseRate: string;
-  overallCVR: string;
+  revenueChange?: string;
+  trend?: number[]; // 趋势数据用于 sparkline
 }
 
 export interface ProductInsight {
