@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, TrendingUp, Target, Search,
-  Star, Flame, ChevronRight,
+  Star, Flame, Users, ChevronRight,
 } from "lucide-react";
 
 const NAV = [
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/seo",        label: "SEO 监控", icon: Search,           group: "外部监控" },
   { href: "/reviews",    label: "用户评价", icon: Star,             group: "外部监控", badge: 3 },
   { href: "/topics",     label: "热门话题", icon: Flame,            group: "外部监控" },
+  { href: "/competitors", label: "竞品监控", icon: Users,           group: "外部监控" },
 ];
 
 const GROUPS = ["监控中心", "外部监控"];

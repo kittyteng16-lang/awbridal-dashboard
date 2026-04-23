@@ -114,6 +114,109 @@ export interface ConversionData {
   trend: TimeSeriesPoint[];   // date, purchase, add_to_cart
 }
 
+// ── 竞品监控 ──────────────────────────────────────────
+export interface CompetitorTraffic {
+  brand: string;
+  totalVisits: number;
+  visitChange: string;
+  channels: {
+    direct: number;
+    organic: number;
+    paid: number;
+    social: number;
+    referral: number;
+  };
+  topLandingPages: {
+    url: string;
+    visits: number;
+    share: string;
+  }[];
+  shareOfVoice: {
+    keyword: string;
+    rank: number;
+    share: string;
+  }[];
+  socialActivity: {
+    platform: string;
+    followers: number;
+    postFreq: string;
+    engagement: string;
+  }[];
+}
+
+export interface CompetitorMerchandising {
+  brand: string;
+  newSKUs: {
+    thisWeek: number;
+    lastWeek: number;
+    trend: string;
+  };
+  priceDistribution: {
+    range: string;
+    count: number;
+    share: string;
+  }[];
+  topProducts: {
+    name: string;
+    price: string;
+    stockStatus: string;
+  }[];
+  promotionActivity: {
+    type: string;
+    discount: string;
+    frequency: string;
+    lastSeen: string;
+  }[];
+}
+
+export interface CompetitorAds {
+  brand: string;
+  activeAds: number;
+  adChange: string;
+  topCreatives: {
+    headline: string;
+    copy: string;
+    format: string;
+    countries: string[];
+    runningDays: number;
+  }[];
+  keywords: string[];
+  topCountries: {
+    country: string;
+    share: string;
+  }[];
+}
+
+export interface CompetitorReputation {
+  brand: string;
+  trustpilot: {
+    score: number;
+    reviews: number;
+    change: string;
+  };
+  sentiment: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+  commonIssues: {
+    topic: string;
+    mentions: number;
+    trend: string;
+  }[];
+  topQuestions: {
+    question: string;
+    frequency: number;
+  }[];
+}
+
+export interface CompetitorData {
+  traffic: CompetitorTraffic[];
+  merchandising: CompetitorMerchandising[];
+  ads: CompetitorAds[];
+  reputation: CompetitorReputation[];
+}
+
 // ── Supabase 缓存行 ────────────────────────────────────
 export interface CacheRow {
   id: string;
