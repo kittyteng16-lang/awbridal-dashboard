@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/refresh",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/competitors/refresh",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

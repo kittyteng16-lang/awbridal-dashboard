@@ -2,7 +2,9 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchCompetitorData } from "@/lib/competitors";
+import { getCached } from "@/lib/supabase";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import type { CompetitorData } from "@/types/dashboard";
 
 const BRAND_COLORS: Record<string, string> = {
   azazie: "#6366F1",
@@ -17,8 +19,37 @@ function TrendIcon({ trend }: { trend: string }) {
   return <Minus className="h-3 w-3 text-slate-400" />;
 }
 
+async function getCompetitorData(): Promise<CompetitorData> {
+  // 尝试从缓存读取
+  try {
+    const [traffic, merchandising, ads, reputation] = await Promise.all([
+      getCached<any[]>("competitors_traffic"),
+      getCached<any[]>("competitors_merchandising"),
+      getCached<any[]>("competitors_ads"),
+      getCached<any[]>("competitors_reputation"),
+    ]);
+
+    // 如果所有缓存都存在，返回缓存数据
+    if (traffic && merchandising && ads && reputation) {
+      console.log("[Competitors Page] Using cached data");
+      return {
+        traffic: traffic as any,
+        merchandising: merchandising as any,
+        ads: ads as any,
+        reputation: reputation as any
+      };
+    }
+  } catch (error) {
+    console.warn("[Competitors Page] Cache read failed:", error);
+  }
+
+  // 缓存不存在，实时获取（首次加载或缓存过期）
+  console.log("[Competitors Page] Fetching fresh data");
+  return await fetchCompetitorData();
+}
+
 export default async function CompetitorsPage() {
-  const data = await fetchCompetitorData();
+  const data = await getCompetitorData();
 
   return (
     <>
@@ -494,24 +525,61 @@ export default async function CompetitorsPage() {
           </div>
         </section>
 
-        {/* 数据说明 */}
-        <Card className="border-amber-200 bg-amber-50/30">
-          <CardContent className="pt-5">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">💡</span>
-              <div className="space-y-1 text-sm">
-                <div className="font-semibold">数据接入说明</div>
-                <div className="text-muted-foreground">
-                  当前展示为模拟数据框架。实际生产环境需接入：
-                  <span className="font-medium"> SimilarWeb / SEMrush API（流量数据）</span>、
-                  <span className="font-medium"> Facebook Ad Library API（广告监控）</span>、
-                  <span className="font-medium"> Trustpilot API（评价数据）</span>、
-                  <span className="font-medium"> 自建爬虫（商品/定价监控）</span>。
+        {/* 数据接入状态 */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card className="border-emerald-200 bg-emerald-50/30">
+            <CardContent className="pt-5">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">✅</span>
+                <div className="space-y-2 text-sm">
+                  <div className="font-semibold">已接入数据源</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="font-medium">Trustpilot</span> - 评价数据（公开爬虫，无需 API Key）
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="font-medium">商品爬虫</span> - 价格/库存监控（支持降级）
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      <span className="font-medium">自动更新</span> - 每 6 小时刷新（Vercel Cron）
+                    </li>
+                  </ul>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-blue-200 bg-blue-50/30">
+            <CardContent className="pt-5">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚙️</span>
+                <div className="space-y-2 text-sm">
+                  <div className="font-semibold">待配置数据源</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span className="font-medium">Facebook Ad Library</span> - 需配置 Access Token
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span className="font-medium">SimilarWeb API</span> - 需付费订阅（$200-500/月）
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                      <span>查看状态：</span>
+                      <a href="/api/competitors/status" target="_blank" className="text-blue-600 hover:underline">
+                        /api/competitors/status
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       </main>
     </>

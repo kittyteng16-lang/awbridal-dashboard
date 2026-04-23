@@ -26,6 +26,29 @@ const BRAND_URLS: Record<string, string> = {
   jjshouse: "https://www.jjshouse.com",
 };
 
+// 随机用户代理池（模拟真实浏览器）
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+];
+
+/**
+ * 获取随机 User-Agent
+ */
+function getRandomUserAgent(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+/**
+ * 延迟函数（避免请求过快）
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * 通用商品列表爬取（需根据各网站调整选择器）
  */
@@ -44,10 +67,21 @@ export async function scrapeProductList(
     const url = `${baseUrl}/${category}`;
     console.log(`[Scraper] Fetching ${url}`);
 
+    // 添加随机延迟（200-500ms）
+    await delay(Math.floor(Math.random() * 300) + 200);
+
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; CompetitorBot/1.0)",
-        Accept: "text/html,application/xhtml+xml,application/xml",
+        "User-Agent": getRandomUserAgent(),
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Referer: baseUrl,
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
       },
       next: { revalidate: 3600 }, // 缓存 1 小时
     });
