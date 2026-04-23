@@ -354,13 +354,8 @@ function parseDetailedProducts(rows: GA4Row[]): ProductPerformance[] {
   return rows
     .filter((row) => {
       const path = row.dimensionValues[0]?.value || "";
-      // 只保留产品相关页面（排除首页、结账等）
-      return path !== "/" &&
-             !path.includes("/cart") &&
-             !path.includes("/checkout") &&
-             !path.includes("/search") &&
-             !path.includes("/track-") &&
-             !path.includes("/orderstatus");
+      // 只保留产品详情页（.html 结尾）
+      return path.endsWith(".html") && path.includes("-");
     })
     .map((row) => {
       const path = row.dimensionValues[0]?.value || "";
@@ -368,27 +363,41 @@ function parseDetailedProducts(rows: GA4Row[]): ProductPerformance[] {
       const views = parseInt(row.metricValues[0]?.value || "0");
       const users = parseInt(row.metricValues[1]?.value || "0");
 
-      // 从路径生成 SKU
-      const pathParts = path.split("/").filter(Boolean);
-      const sku = pathParts.length > 0
-        ? pathParts.join("_").toUpperCase().replace(/[^A-Z0-9_]/g, "").slice(0, 30)
-        : "UNKNOWN";
+      // 从 URL 提取 SKU（格式：/product-name-SKU.html）
+      const skuMatch = path.match(/-([a-z0-9]+)\.html$/i);
+      const sku = skuMatch ? skuMatch[1].toUpperCase() : path.split("/").pop()?.replace(".html", "").toUpperCase() || "UNKNOWN";
+
+      // 从标题提取产品名称
+      const productName = title
+        .replace(/ - AW Bridal.*$/i, "")
+        .replace(/\s*\|.*$/, "")
+        .replace(/,.*$/, "")
+        .trim()
+        .slice(0, 60);
+
+      // 从 URL 推断分类
+      let category: string | undefined;
+      if (path.includes("bridesmaid")) category = "Bridesmaid Dresses";
+      else if (path.includes("prom")) category = "Prom Dresses";
+      else if (path.includes("wedding")) category = "Wedding Dresses";
+      else if (path.includes("mother")) category = "Mother of the Bride";
+      else if (path.includes("evening")) category = "Evening Gowns";
 
       // 估算转化指标
-      const addToCarts = Math.floor(views * 0.03); // 3% 加购率
+      const addToCarts = Math.floor(views * 0.04); // 4% 加购率
       const checkouts = Math.floor(addToCarts * 0.6);
       const purchases = Math.floor(checkouts * 0.45);
       const revenue = purchases * 156;
 
-      const addToCartRate = "3.0";
+      const addToCartRate = "4.0";
       const conversionRate = views > 0 ? ((purchases / views) * 100).toFixed(2) : "0.00";
 
       const trend = generateTrendData(Math.max(1, Math.floor(views / 30)));
 
       return {
-        name: title.replace(/ - AW Bridal.*$/, "").replace(/\s*\|.*$/, "").trim().slice(0, 50),
+        name: productName,
         sku,
-        category: pathParts[0]?.replace(/-/g, " ").toUpperCase(),
+        category,
         views,
         viewsChange: "+100.0%",
         addToCarts,
