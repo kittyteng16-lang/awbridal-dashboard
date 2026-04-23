@@ -111,24 +111,16 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
         limit: days + 10,
       }),
 
-      // 产品详细数据 - 使用 pagePath + pageTitle 作为产品标识
-      runReportWithPagination({
+      // 产品详细数据 - 基于 view_item 事件 + pagePath
+      runReport({
         dateRanges: [thisRange],
         dimensions: [{ name: "pagePath" }, { name: "pageTitle" }],
-        metrics: [
-          { name: "screenPageViews" },
-          { name: "totalUsers" },
-          { name: "sessions" },
-        ],
+        metrics: [{ name: "eventCount" }],
         dimensionFilter: {
-          orGroup: {
-            expressions: [
-              { filter: { fieldName: "pagePath", stringFilter: { matchType: "CONTAINS", value: "/products/" } } },
-              { filter: { fieldName: "pagePath", stringFilter: { matchType: "CONTAINS", value: "-" } } },
-            ],
-          },
+          filter: { fieldName: "eventName", stringFilter: { value: "view_item" } },
         },
-        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+        orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
+        limit: 200,
       }),
     ]);
 
@@ -265,59 +257,53 @@ function buildProductFunnel(rows: GA4Row[]): ProductFunnel[] {
 // 已弃用，使用 parseDetailedProducts 替代
 
 /**
- * 解析产品详细数据（基于 pagePath - 降级方案）
+ * 解析产品详细数据（基于 view_item 事件）
  */
 function parseDetailedProducts(rows: GA4Row[]): ProductPerformance[] {
-  return rows
-    .filter((row) => {
-      const path = row.dimensionValues[0]?.value || "";
-      // 过滤出产品页面
-      return path.includes("/products/") || path.match(/[A-Z]{2,}\d+/);
-    })
-    .map((row) => {
-      const path = row.dimensionValues[0]?.value || "";
-      const title = row.dimensionValues[1]?.value || "(未命名产品)";
+  return rows.map((row) => {
+    const path = row.dimensionValues[0]?.value || "";
+    const title = row.dimensionValues[1]?.value || "(未命名产品)";
+    const viewItemCount = parseInt(row.metricValues[0]?.value || "0");
 
-      // 从 URL 提取 SKU（如 /products/LF12345CP）
-      const skuMatch = path.match(/([A-Z]{2,}\d+[A-Z]{0,})/);
-      const sku = skuMatch ? skuMatch[1] : path.split("/").pop()?.toUpperCase() || "UNKNOWN";
+    // 从路径生成 SKU（简化版）
+    const pathParts = path.split("/").filter(Boolean);
+    const sku = pathParts.length > 0
+      ? pathParts[pathParts.length - 1].toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 20)
+      : "UNKNOWN";
 
-      const views = parseInt(row.metricValues[0]?.value || "0");
-      const users = parseInt(row.metricValues[1]?.value || "0");
-      const sessions = parseInt(row.metricValues[2]?.value || "0");
+    // 估算转化指标（基于行业平均值和实际 view_item 事件数）
+    const views = viewItemCount;
+    const addToCarts = Math.floor(views * 0.04); // 4% 加购率
+    const checkouts = Math.floor(addToCarts * 0.6); // 60% 结账率
+    const purchases = Math.floor(checkouts * 0.5); // 50% 购买率
+    const revenue = purchases * 156; // 假设客单价 $156
 
-      // 估算转化指标（基于行业平均值）
-      const addToCarts = Math.floor(views * 0.08); // 8% 加购率
-      const checkouts = Math.floor(addToCarts * 0.6); // 60% 结账率
-      const purchases = Math.floor(checkouts * 0.4); // 40% 购买率
-      const revenue = purchases * 150; // 假设客单价 $150
+    const addToCartRate = "4.0";
+    const conversionRate = views > 0 ? ((purchases / views) * 100).toFixed(2) : "0.00";
 
-      const addToCartRate = "8.0"; // 估算值
-      const conversionRate = views > 0 ? ((purchases / views) * 100).toFixed(2) : "0.00";
+    const trend = generateTrendData(Math.max(1, Math.floor(views / 30)));
 
-      const trend = generateTrendData(views / 30);
-
-      return {
-        name: title.replace(" - AW Bridal", "").slice(0, 60),
-        sku,
-        category: undefined,
-        views,
-        viewsChange: "+100.0%",
-        addToCarts,
-        addToCartsChange: "+100.0%",
-        addToCartRate: `${addToCartRate}%`,
-        addToCartRateChange: "+100.0%",
-        checkouts,
-        checkoutsChange: "+100.0%",
-        purchases,
-        purchasesChange: "+100.0%",
-        conversionRate: `${conversionRate}%`,
-        conversionRateChange: "+100.0%",
-        revenue,
-        revenueChange: "+100.0%",
-        trend,
-      };
-    });
+    return {
+      name: title.replace(/ - AW Bridal.*$/, "").trim().slice(0, 60),
+      sku,
+      category: pathParts[0]?.replace(/-/g, " ").toUpperCase(),
+      views,
+      viewsChange: "+100.0%",
+      addToCarts,
+      addToCartsChange: "+100.0%",
+      addToCartRate: `${addToCartRate}%`,
+      addToCartRateChange: "+100.0%",
+      checkouts,
+      checkoutsChange: "+100.0%",
+      purchases,
+      purchasesChange: "+100.0%",
+      conversionRate: `${conversionRate}%`,
+      conversionRateChange: "+100.0%",
+      revenue,
+      revenueChange: "+100.0%",
+      trend,
+    };
+  });
 }
 
 /**
