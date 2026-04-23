@@ -36,17 +36,41 @@ function guessSentiment(title: string, text: string): "positive" | "neutral" | "
   return "neutral";
 }
 
+/**
+ * 从婚礼相关 subreddit 拉取热帖
+ * 支持 wedding, weddingplanning, prom 等
+ */
 export async function fetchRedditMentions(query: string, limit = 15, timeRange = "year"): Promise<RedditResult[]> {
-  const encoded = encodeURIComponent(query);
-  const url = `https://www.reddit.com/search.json?q=${encoded}&sort=new&limit=${limit}&t=${timeRange}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "awbridal-dashboard/1.0" },
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) throw new Error(`Reddit API ${res.status}`);
-  const data = await res.json();
-  const posts: RedditPost[] = data.data.children.map((c: { data: RedditPost }) => c.data);
-  return posts.map((p) => ({
+  // 婚礼相关 subreddit 列表
+  const subreddits = ["wedding", "weddingplanning", "prom", "weddingdress", "Bride"];
+  const allPosts: RedditPost[] = [];
+
+  // 根据时间范围确定排序方式
+  const sortBy = timeRange === "week" ? "hot" : "top";
+  const timeParam = timeRange === "year" ? "year" : timeRange === "month" ? "month" : "week";
+
+  for (const sub of subreddits) {
+    try {
+      const url = `https://www.reddit.com/r/${sub}/${sortBy}.json?limit=${Math.ceil(limit / subreddits.length)}&t=${timeParam}`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "awbridal-dashboard/1.0" },
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const posts: RedditPost[] = data.data.children.map((c: { data: RedditPost }) => c.data);
+      allPosts.push(...posts);
+    } catch {
+      continue;
+    }
+  }
+
+  // 按热度（score + comments）排序，取前 limit 条
+  const sorted = allPosts
+    .sort((a, b) => (b.score + b.num_comments) - (a.score + a.num_comments))
+    .slice(0, limit);
+
+  return sorted.map((p) => ({
     title: p.title,
     text: p.selftext?.slice(0, 200) ?? "",
     score: p.score,

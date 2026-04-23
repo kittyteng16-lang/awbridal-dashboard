@@ -8,7 +8,7 @@ import type { RedditResult } from "@/lib/reddit";
 
 async function getReviews(timeParam: string): Promise<RedditResult[]> {
   try {
-    const results = await fetchRedditMentions('"aw bridal" OR "awbridal"', 50, timeParam);
+    const results = await fetchRedditMentions("", 50, timeParam);
     return results;
   } catch {
     return [];
@@ -20,7 +20,7 @@ function generateInsights(reviews: RedditResult[]) {
   if (reviews.length === 0) {
     return {
       summary: "暂无数据",
-      insights: ["近期没有发现相关品牌提及"],
+      insights: ["近期没有抓取到婚礼相关 Reddit 热帖"],
       sentiment: "neutral" as const
     };
   }
@@ -45,16 +45,16 @@ function generateInsights(reviews: RedditResult[]) {
 
   // 情感分析
   if (posRate >= 60) {
-    insights.push(`✅ 品牌口碑表现优秀，${posRate}% 的提及为正面评价`);
+    insights.push(`✅ 婚礼话题整体情绪积极，${posRate}% 的帖子为正面内容`);
     overallSentiment = "positive";
   } else if (posRate >= 40) {
-    insights.push(`📊 品牌口碑表现良好，${posRate}% 的提及为正面评价`);
+    insights.push(`📊 婚礼话题情绪良好，${posRate}% 的帖子为正面内容`);
     overallSentiment = "neutral";
   } else if (negRate >= 40) {
-    insights.push(`⚠️ 需要关注，${negRate}% 的提及为负面反馈`);
+    insights.push(`⚠️ 需要关注，${negRate}% 的帖子反馈负面情绪`);
     overallSentiment = "negative";
   } else {
-    insights.push(`📊 品牌提及以中性为主，正面评价占 ${posRate}%`);
+    insights.push(`📊 婚礼话题以中性为主，正面帖子占 ${posRate}%`);
   }
 
   // 互动分析
@@ -81,7 +81,7 @@ function generateInsights(reviews: RedditResult[]) {
     insights.push(`💡 建议：重点关注负面反馈中的共性问题，优先改进服务体验`);
   }
 
-  const summary = `共 ${total} 条品牌提及 · 正面 ${posRate}% · 负面 ${negRate}% · 平均互动 ${avgScore}⬆ ${avgComments}💬`;
+  const summary = `共 ${total} 条婚礼热帖 · 正面 ${posRate}% · 负面 ${negRate}% · 平均互动 ${avgScore}⬆ ${avgComments}💬`;
 
   return { summary, insights, sentiment: overallSentiment };
 }
@@ -173,8 +173,8 @@ export default async function ReviewsPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Reddit 品牌提及</CardTitle>
-                <CardDescription className="mt-1">{resolved.label}提及"aw bridal"的帖子（按时间倒序）</CardDescription>
+                <CardTitle>Reddit 婚礼热帖</CardTitle>
+                <CardDescription className="mt-1">{resolved.label}来自 r/wedding、r/weddingplanning、r/prom 等的热门讨论</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Badge variant="outline">Reddit</Badge>
@@ -186,7 +186,7 @@ export default async function ReviewsPage({
             {reviews.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <span className="text-4xl">🔍</span>
-                <p className="text-sm text-muted-foreground">暂无近期 Reddit 提及</p>
+                <p className="text-sm text-muted-foreground">暂无婚礼相关热帖</p>
               </div>
             ) : (
               <div className="divide-y">
