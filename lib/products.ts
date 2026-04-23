@@ -26,6 +26,42 @@ async function runReport(body: object): Promise<GA4Row[]> {
 }
 
 /**
+ * 分页获取所有数据（突破 10000 条限制）
+ */
+async function runReportWithPagination(body: any): Promise<GA4Row[]> {
+  const allRows: GA4Row[] = [];
+  let offset = 0;
+  const pageSize = 10000;
+
+  while (true) {
+    const r = await matonPost<GA4Response>(GA4_PATH, {
+      ...body,
+      limit: pageSize,
+      offset,
+    });
+
+    const rows = r.rows ?? [];
+    allRows.push(...rows);
+
+    // 如果返回的行数少于 pageSize，说明已经是最后一页
+    if (rows.length < pageSize) {
+      break;
+    }
+
+    offset += pageSize;
+
+    // 安全限制：最多获取 50000 条（防止无限循环）
+    if (offset >= 50000) {
+      console.warn("[Products] Reached max rows limit (50000)");
+      break;
+    }
+  }
+
+  console.log(`[Products] Total rows fetched: ${allRows.length}`);
+  return allRows;
+}
+
+/**
  * 获取产品分析数据
  */
 export async function fetchProductData(days: number = 30): Promise<ProductData> {
@@ -42,7 +78,7 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
     : { startDate: `${days * 2}daysAgo`, endDate: `${days + 1}daysAgo` };
 
   try {
-    const [summaryRows, trendRows, productRows, productDetailRows] = await Promise.all([
+    const [summaryRows, trendRows, productDetailRows] = await Promise.all([
       // KPI 汇总（本期 vs 上期）
       runReport({
         dateRanges: [
@@ -71,22 +107,8 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
         limit: days + 10,
       }),
 
-      // Top 产品性能（按浏览量）
-      runReport({
-        dateRanges: [thisRange],
-        dimensions: [{ name: "itemName" }],
-        metrics: [
-          { name: "itemViews" },
-          { name: "addToCarts" },
-          { name: "ecommercePurchases" },
-          { name: "itemRevenue" },
-        ],
-        orderBys: [{ metric: { metricName: "itemViews" }, desc: true }],
-        limit: 50,
-      }),
-
-      // 产品详细数据（包含 SKU/分类等）
-      runReport({
+      // 产品详细数据（包含 SKU/分类等）- 使用分页获取所有数据
+      runReportWithPagination({
         dateRanges: [thisRange],
         dimensions: [{ name: "itemName" }, { name: "itemId" }, { name: "itemCategory" }],
         metrics: [
@@ -99,7 +121,6 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
           { name: "itemsPurchased" },
         ],
         orderBys: [{ metric: { metricName: "itemRevenue" }, desc: true }],
-        limit: 100,
       }),
     ]);
 
@@ -117,8 +138,8 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
       purchases: parseInt(row.metricValues[2].value) || 0,
     }));
 
-    // 解析 SKU 详细数据（新增）
-    const topProducts = parseDetailedProducts(productDetailRows.length > 0 ? productDetailRows : productRows);
+    // 解析 SKU 详细数据
+    const topProducts = parseDetailedProducts(productDetailRows);
 
     // 生成智能洞察（基于 SKU 性能）
     const insights = generateSKUInsights(kpi, topProducts);

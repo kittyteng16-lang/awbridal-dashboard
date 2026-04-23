@@ -49,6 +49,7 @@ export default function ProductsPageClient({ initialData, timeLabel }: ProductsP
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<SortColumn>("revenue");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [displayLimit, setDisplayLimit] = useState(100);
 
   // 筛选和排序
   const filteredAndSortedProducts = useMemo(() => {
@@ -255,7 +256,7 @@ export default function ProductsPageClient({ initialData, timeLabel }: ProductsP
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAndSortedProducts.map((product, i) => (
+                  {filteredAndSortedProducts.slice(0, displayLimit).map((product, i) => (
                     <tr key={i} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-mono font-semibold text-primary">{product.sku}</div>
@@ -297,6 +298,34 @@ export default function ProductsPageClient({ initialData, timeLabel }: ProductsP
                 </div>
               )}
             </div>
+
+            {/* 加载更多 / 数据统计 */}
+            {filteredAndSortedProducts.length > 0 && (
+              <div className="border-t p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    显示 {Math.min(displayLimit, filteredAndSortedProducts.length)} / {filteredAndSortedProducts.length} 个 SKU
+                    {searchTerm && ` (从总计 ${initialData.topProducts.length} 个中筛选)`}
+                  </div>
+                  {displayLimit < filteredAndSortedProducts.length && (
+                    <button
+                      onClick={() => setDisplayLimit((prev) => prev + 100)}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                    >
+                      加载更多 100 条
+                    </button>
+                  )}
+                  {displayLimit >= filteredAndSortedProducts.length && filteredAndSortedProducts.length > 100 && (
+                    <button
+                      onClick={() => setDisplayLimit(100)}
+                      className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      收起显示
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
