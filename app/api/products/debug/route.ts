@@ -11,41 +11,92 @@ export async function GET(request: Request) {
   try {
     const days = range === "7d" ? 7 : range === "90d" ? 90 : range === "1y" ? 365 : 30;
 
-    // 如果开启 debug，直接调用 GA4 API 看原始响应
+    // 如果开启 debug，测试多种查询方式
     if (debug) {
       const { matonPost } = await import("@/lib/maton");
       const PROPERTY = process.env.GA4_PROPERTY_ID ?? "254101518";
       const GA4_PATH = `/google-analytics-data/v1beta/properties/${PROPERTY}:runReport`;
 
-      const testBody = {
-        dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
-        dimensions: [{ name: "itemName" }, { name: "itemId" }, { name: "itemCategory" }],
-        metrics: [
-          { name: "itemViews" },
-          { name: "addToCarts" },
-          { name: "ecommercePurchases" },
-          { name: "itemRevenue" },
-        ],
-        orderBys: [{ metric: { metricName: "itemRevenue" }, desc: true }],
-        limit: 10,
+      const results: any = {
+        propertyId: PROPERTY,
+        tests: []
       };
 
+      // 测试 1: 原始电商维度
       try {
-        const rawResponse = await matonPost(GA4_PATH, testBody);
-        return NextResponse.json({
+        const test1Body = {
+          dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
+          dimensions: [{ name: "itemName" }, { name: "itemId" }],
+          metrics: [{ name: "itemViews" }, { name: "addToCarts" }],
+          limit: 5,
+        };
+        const res1 = await matonPost(GA4_PATH, test1Body);
+        results.tests.push({
+          name: "itemName + itemId",
           success: true,
-          debug: true,
-          ga4Response: rawResponse,
-          rowCount: rawResponse.rows?.length || 0,
+          rowCount: res1.rows?.length || 0,
+          sample: res1.rows?.slice(0, 2)
         });
-      } catch (ga4Error: any) {
-        return NextResponse.json({
+      } catch (e: any) {
+        results.tests.push({
+          name: "itemName + itemId",
           success: false,
-          debug: true,
-          ga4Error: String(ga4Error),
-          ga4ErrorDetails: ga4Error.message || ga4Error.toString(),
-        }, { status: 500 });
+          error: e.message || String(e)
+        });
       }
+
+      // 测试 2: pagePath 查询
+      try {
+        const test2Body = {
+          dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
+          dimensions: [{ name: "pagePath" }, { name: "pageTitle" }],
+          metrics: [{ name: "screenPageViews" }],
+          dimensionFilter: {
+            filter: { fieldName: "pagePath", stringFilter: { matchType: "CONTAINS", value: "/products/" } }
+          },
+          orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+          limit: 10,
+        };
+        const res2 = await matonPost(GA4_PATH, test2Body);
+        results.tests.push({
+          name: "pagePath (contains /products/)",
+          success: true,
+          rowCount: res2.rows?.length || 0,
+          sample: res2.rows?.slice(0, 3)
+        });
+      } catch (e: any) {
+        results.tests.push({
+          name: "pagePath (contains /products/)",
+          success: false,
+          error: e.message || String(e)
+        });
+      }
+
+      // 测试 3: 所有 pagePath（不过滤）
+      try {
+        const test3Body = {
+          dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
+          dimensions: [{ name: "pagePath" }],
+          metrics: [{ name: "screenPageViews" }],
+          orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+          limit: 20,
+        };
+        const res3 = await matonPost(GA4_PATH, test3Body);
+        results.tests.push({
+          name: "All pagePath (top 20)",
+          success: true,
+          rowCount: res3.rows?.length || 0,
+          sample: res3.rows?.slice(0, 10).map((r: any) => r.dimensionValues[0]?.value)
+        });
+      } catch (e: any) {
+        results.tests.push({
+          name: "All pagePath",
+          success: false,
+          error: e.message || String(e)
+        });
+      }
+
+      return NextResponse.json(results);
     }
 
     const data = await fetchProductDataByWindow(days);
