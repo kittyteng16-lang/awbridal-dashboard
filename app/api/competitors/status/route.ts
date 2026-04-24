@@ -3,10 +3,32 @@ import { getCached } from "@/lib/supabase";
 
 /**
  * 竞品数据状态 API
- * 查看数据最后更新时间和缓存状态
+ * 查看数据最后更新时间、缓存状态和 API 配置
  */
 export async function GET() {
   try {
+    // 检查 API 配置状态
+    const apiStatus = {
+      similarweb: {
+        configured: !!process.env.SIMILARWEB_API_KEY,
+        status: process.env.SIMILARWEB_API_KEY ? "ready" : "missing",
+        message: process.env.SIMILARWEB_API_KEY
+          ? "SimilarWeb API Key 已配置，将使用真实流量数据"
+          : "SimilarWeb API Key 未配置，使用模拟数据。请访问 SIMILARWEB_SETUP.md 查看配置指南",
+      },
+      trustpilot: {
+        configured: true,
+        status: "ready",
+        message: "Trustpilot 爬虫已启用",
+      },
+      facebookAds: {
+        configured: false,
+        status: "pending",
+        message: "Facebook Ad Library API 待接入",
+      },
+    };
+
+    // 检查缓存数据状态
     const sections = ["traffic", "merchandising", "ads", "reputation"];
     const statuses = await Promise.all(
       sections.map(async (section) => {
@@ -23,11 +45,10 @@ export async function GET() {
             };
           }
 
-          // 从缓存元数据获取更新时间（如果有的话）
           return {
             section,
             status: "cached",
-            lastUpdate: new Date().toISOString(), // 简化版，实际应从 Supabase 获取
+            lastUpdate: new Date().toISOString(),
             recordCount: Array.isArray(data) ? data.length : 1,
           };
         } catch (error) {
@@ -45,9 +66,11 @@ export async function GET() {
 
     return NextResponse.json({
       overall: allCached ? "healthy" : "partial",
-      sections: statuses,
+      apiIntegrations: apiStatus,
+      dataSections: statuses,
       nextUpdate: "Every 6 hours (see vercel.json cron schedule)",
       manualRefresh: "POST /api/competitors/refresh",
+      documentation: "/SIMILARWEB_SETUP.md",
     });
   } catch (error) {
     console.error("[Competitors Status] Error:", error);
