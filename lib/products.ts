@@ -186,9 +186,9 @@ function parseRealEcommerceKPI(rows: GA4Row[]): ProductData["kpi"] {
   const prevPurchases = parseInt(pr[2]) || 1;
   const prevRevenue = parseFloat(pr[3]) || 1;
 
-  // 结账数估算（60% 的加购会进入结账）
-  const thisCheckouts = Math.floor(thisAddToCarts * 0.6);
-  const prevCheckouts = Math.floor(prevAddToCarts * 0.6);
+  // 结账数估算（确保不小于购买数，保持漏斗逻辑合理）
+  const thisCheckouts = Math.max(Math.floor(thisAddToCarts * 0.6), thisPurchases);
+  const prevCheckouts = Math.max(Math.floor(prevAddToCarts * 0.6), prevPurchases);
 
   const thisAOV = thisPurchases > 0 ? thisRevenue / thisPurchases : 0;
   const prevAOV = prevPurchases > 0 ? prevRevenue / prevPurchases : 1;
@@ -279,9 +279,9 @@ function parseRealProductPerformance(rows: GA4Row[]): ProductPerformance[] {
     const prevPurchases = parseInt(row.metricValues[6]?.value || "0") || 1;
     const prevRevenue = parseFloat(row.metricValues[7]?.value || "0") || 1;
 
-    // 估算结账数
-    const thisCheckouts = Math.floor(thisAddToCarts * 0.6);
-    const prevCheckouts = Math.floor(prevAddToCarts * 0.6);
+    // 估算结账数（确保不小于购买数，保持漏斗逻辑合理）
+    const thisCheckouts = Math.max(Math.floor(thisAddToCarts * 0.6), thisPurchases);
+    const prevCheckouts = Math.max(Math.floor(prevAddToCarts * 0.6), prevPurchases);
 
     // 计算转化率
     const addToCartRate = thisViews > 0 ? ((thisAddToCarts / thisViews) * 100).toFixed(1) : "0.0";
@@ -361,8 +361,8 @@ function parseSimplifiedKPI(rows: GA4Row[]): ProductData["kpi"] {
   const thisAddToCarts = Math.floor(thisSessions * 0.05); // 5% 加购率
   const prevAddToCarts = Math.floor(prevSessions * 0.05);
 
-  const thisCheckouts = Math.floor(thisAddToCarts * 0.6); // 60% 结账率
-  const prevCheckouts = Math.floor(prevAddToCarts * 0.6);
+  const thisCheckouts = Math.max(Math.floor(thisAddToCarts * 0.6), thisPurchases); // 确保不小于购买数
+  const prevCheckouts = Math.max(Math.floor(prevAddToCarts * 0.6), prevPurchases);
 
   const thisPurchases = Math.floor(thisCheckouts * 0.4); // 40% 购买率
   const prevPurchases = Math.floor(prevCheckouts * 0.4);
@@ -462,9 +462,9 @@ function parseProductKPI(rows: GA4Row[]): ProductData["kpi"] {
   const prevRevenue = parseFloat(row.metricValues[8]?.value || "0");
   const prevAOV = parseFloat(row.metricValues[9]?.value || "0");
 
-  // 结账数（假设为加车的一半，实际应用 begin_checkout 事件）
-  const thisCheckouts = Math.floor(thisAddToCarts * 0.6);
-  const prevCheckouts = Math.floor(prevAddToCarts * 0.6);
+  // 结账数估算（确保不小于购买数）
+  const thisCheckouts = Math.max(Math.floor(thisAddToCarts * 0.6), thisPurchases);
+  const prevCheckouts = Math.max(Math.floor(prevAddToCarts * 0.6), prevPurchases);
 
   return {
     views: {
@@ -505,7 +505,7 @@ function buildProductFunnel(rows: GA4Row[]): ProductFunnel[] {
   const views = parseInt(row.metricValues[0]?.value || "0");
   const addToCarts = parseInt(row.metricValues[1]?.value || "0");
   const purchases = parseInt(row.metricValues[2]?.value || "0");
-  const checkouts = Math.floor(addToCarts * 0.6); // 假设值
+  const checkouts = Math.max(Math.floor(addToCarts * 0.6), purchases); // 确保不小于购买数
 
   const funnel: ProductFunnel[] = [
     {
