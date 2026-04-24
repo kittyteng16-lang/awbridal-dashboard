@@ -357,12 +357,12 @@ function parseSimplifiedKPI(rows: GA4Row[]): ProductData["kpi"] {
   const prevSessions = parseInt(row.metricValues[4]?.value || "0");
   const prevUsers = parseInt(row.metricValues[5]?.value || "0");
 
-  // 基于行业平均值估算转化指标
+  // 基于行业平均值估算转化指标（此函数全部使用估算值，不依赖真实数据）
   const thisAddToCarts = Math.floor(thisSessions * 0.05); // 5% 加购率
   const prevAddToCarts = Math.floor(prevSessions * 0.05);
 
-  const thisCheckouts = Math.max(Math.floor(thisAddToCarts * 0.6), thisPurchases); // 确保不小于购买数
-  const prevCheckouts = Math.max(Math.floor(prevAddToCarts * 0.6), prevPurchases);
+  const thisCheckouts = Math.floor(thisAddToCarts * 0.6); // 60% 结账率
+  const prevCheckouts = Math.floor(prevAddToCarts * 0.6);
 
   const thisPurchases = Math.floor(thisCheckouts * 0.4); // 40% 购买率
   const prevPurchases = Math.floor(prevCheckouts * 0.4);
