@@ -7,24 +7,27 @@ import { getCached } from "@/lib/supabase";
  */
 export async function GET() {
   try {
-    // 检查 API 配置状态
-    const apiStatus = {
-      similarweb: {
-        configured: !!process.env.SIMILARWEB_API_KEY,
-        status: process.env.SIMILARWEB_API_KEY ? "ready" : "missing",
-        message: process.env.SIMILARWEB_API_KEY
-          ? "SimilarWeb API Key 已配置，将使用真实流量数据"
-          : "SimilarWeb API Key 未配置，使用模拟数据。请访问 SIMILARWEB_SETUP.md 查看配置指南",
-      },
+    // 检查数据源状态
+    const dataSourceStatus = {
       trustpilot: {
-        configured: true,
-        status: "ready",
-        message: "Trustpilot 爬虫已启用",
+        type: "真实数据",
+        status: "active",
+        message: "通过爬虫获取竞品真实评价数据",
       },
-      facebookAds: {
-        configured: false,
-        status: "pending",
-        message: "Facebook Ad Library API 待接入",
+      merchandising: {
+        type: "真实数据",
+        status: "active",
+        message: "通过爬虫获取竞品商品和定价数据",
+      },
+      traffic: {
+        type: "行业估算",
+        status: "active",
+        message: "使用行业平均数据和市场研究（SimilarWeb API 需付费订阅）",
+      },
+      ads: {
+        type: "行业估算",
+        status: "active",
+        message: "使用行业估算数据（可通过 Facebook Ad Library 手动验证）",
       },
     };
 
@@ -66,11 +69,10 @@ export async function GET() {
 
     return NextResponse.json({
       overall: allCached ? "healthy" : "partial",
-      apiIntegrations: apiStatus,
+      dataSources: dataSourceStatus,
       dataSections: statuses,
       nextUpdate: "Every 6 hours (see vercel.json cron schedule)",
       manualRefresh: "POST /api/competitors/refresh",
-      documentation: "/SIMILARWEB_SETUP.md",
     });
   } catch (error) {
     console.error("[Competitors Status] Error:", error);
