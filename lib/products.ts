@@ -92,14 +92,14 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
       dimensions: [{ name: "itemName" }, { name: "itemId" }],
       metrics: [
         { name: "itemsViewed" },
-        { name: "addToCarts" },
+        { name: "itemsAddedToCart" },
         { name: "itemsPurchased" },
         { name: "itemRevenue" },
       ],
       orderBys: [{ metric: { metricName: "itemsPurchased" }, desc: true }],
     });
 
-    // 获取总体 KPI（本期 vs 上期）
+    // 获取总体 KPI（本期 vs 上期）- 使用电商维度无关的指标
     const summaryRows = await runReport({
       dateRanges: [
         { ...thisRange, name: "this" },
@@ -107,8 +107,8 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
       ],
       metrics: [
         { name: "itemsViewed" },
-        { name: "addToCarts" },
-        { name: "ecommercePurchases" },
+        { name: "itemsAddedToCart" },
+        { name: "itemsPurchased" },
         { name: "totalRevenue" },
       ],
     });
@@ -119,8 +119,8 @@ export async function fetchProductDataByWindow(days: number = 30, window?: DateW
       dimensions: [{ name: "date" }],
       metrics: [
         { name: "itemsViewed" },
-        { name: "addToCarts" },
-        { name: "ecommercePurchases" },
+        { name: "itemsAddedToCart" },
+        { name: "itemsPurchased" },
       ],
       orderBys: [{ dimension: { dimensionName: "date" } }],
       limit: days + 10,

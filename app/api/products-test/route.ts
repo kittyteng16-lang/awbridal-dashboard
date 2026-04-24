@@ -14,7 +14,7 @@ export async function GET() {
       dimensions: [{ name: "itemName" }, { name: "itemId" }],
       metrics: [
         { name: "itemsViewed" },
-        { name: "addToCarts" },
+        { name: "itemsAddedToCart" },
         { name: "itemsPurchased" },
         { name: "itemRevenue" },
       ],
