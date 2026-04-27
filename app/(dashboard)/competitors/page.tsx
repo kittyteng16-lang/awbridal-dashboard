@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { fetchCompetitorData } from "@/lib/competitors";
 import { getCached } from "@/lib/supabase";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { analyzeCompetitors } from "@/lib/analytics";
+import { TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle, Info } from "lucide-react";
 import type { CompetitorData } from "@/types/dashboard";
 
 const BRAND_COLORS: Record<string, string> = {
@@ -11,6 +12,33 @@ const BRAND_COLORS: Record<string, string> = {
   birdygrey: "#10B981",
   hellomolly: "#F59E0B",
   jjshouse: "#EF4444",
+};
+
+const INSIGHT_ICONS = {
+  success: CheckCircle,
+  warning: AlertCircle,
+  danger: AlertCircle,
+  info: Info,
+};
+
+const INSIGHT_COLORS = {
+  success: "border-emerald-200 bg-emerald-50/30",
+  warning: "border-amber-200 bg-amber-50/30",
+  danger: "border-red-200 bg-red-50/30",
+  info: "border-blue-200 bg-blue-50/30",
+};
+
+const INSIGHT_ICON_COLORS = {
+  success: "text-emerald-600",
+  warning: "text-amber-600",
+  danger: "text-red-600",
+  info: "text-blue-600",
+};
+
+const PRIORITY_BADGES = {
+  high: { label: "高优先级", className: "bg-red-100 text-red-700 border-red-200" },
+  medium: { label: "中优先级", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  low: { label: "低优先级", className: "bg-slate-100 text-slate-600 border-slate-200" },
 };
 
 function TrendIcon({ trend }: { trend: string }) {
@@ -50,6 +78,7 @@ async function getCompetitorData(): Promise<CompetitorData> {
 
 export default async function CompetitorsPage() {
   const data = await getCompetitorData();
+  const insights = analyzeCompetitors(data);
 
   return (
     <>
@@ -58,6 +87,46 @@ export default async function CompetitorsPage() {
         subtitle="实时监测 Azazie · BirdyGrey · HelloMolly · JJsHouse"
       />
       <main className="flex-1 p-6 space-y-6">
+
+        {/* 竞品情报分析 */}
+        {insights.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-primary" />
+              <h2 className="text-lg font-semibold">竞品情报与战略建议</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {insights.map((insight, i) => {
+                const Icon = INSIGHT_ICONS[insight.type];
+                const colorClass = INSIGHT_COLORS[insight.type];
+                const iconColor = INSIGHT_ICON_COLORS[insight.type];
+                const priorityBadge = PRIORITY_BADGES[insight.priority];
+                return (
+                  <Card key={i} className={colorClass}>
+                    <CardContent className="pt-5">
+                      <div className="flex items-start gap-3">
+                        <Icon className={`h-5 w-5 shrink-0 ${iconColor}`} />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-semibold">{insight.title}</div>
+                            <Badge variant="outline" className={`shrink-0 text-xs ${priorityBadge.className}`}>
+                              {priorityBadge.label}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">{insight.description}</div>
+                          <div className="rounded-md bg-white/60 p-3 text-sm">
+                            <div className="font-medium text-foreground">💡 应对策略</div>
+                            <div className="mt-1 text-muted-foreground">{insight.recommendation}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* 1. 流量与渠道情报 */}
         <section className="space-y-4">

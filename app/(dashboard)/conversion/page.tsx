@@ -7,7 +7,36 @@ import { DateRangeSelector } from "@/components/common/DateRangeSelector";
 import { resolveDateRange } from "@/lib/date-range";
 import { fetchConversionDataByWindow } from "@/lib/ga4";
 import { getCached, setCached } from "@/lib/supabase";
+import { analyzeConversion } from "@/lib/analytics";
 import type { ConversionData } from "@/types/dashboard";
+import { AlertCircle, CheckCircle, Info } from "lucide-react";
+
+const INSIGHT_ICONS = {
+  success: CheckCircle,
+  warning: AlertCircle,
+  danger: AlertCircle,
+  info: Info,
+};
+
+const INSIGHT_COLORS = {
+  success: "border-emerald-200 bg-emerald-50/30",
+  warning: "border-amber-200 bg-amber-50/30",
+  danger: "border-red-200 bg-red-50/30",
+  info: "border-blue-200 bg-blue-50/30",
+};
+
+const INSIGHT_ICON_COLORS = {
+  success: "text-emerald-600",
+  warning: "text-amber-600",
+  danger: "text-red-600",
+  info: "text-blue-600",
+};
+
+const PRIORITY_BADGES = {
+  high: { label: "高优先级", className: "bg-red-100 text-red-700 border-red-200" },
+  medium: { label: "中优先级", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  low: { label: "低优先级", className: "bg-slate-100 text-slate-600 border-slate-200" },
+};
 
 async function getConversion(days: number, cacheKey: string, window?: { start: string; end: string }): Promise<ConversionData | null> {
   try {
@@ -36,6 +65,8 @@ export default async function ConversionPage({
     resolved.start && resolved.end ? { start: resolved.start, end: resolved.end } : undefined
   );
 
+  const insights = analyzeConversion(data);
+
   return (
     <>
       <Topbar title="转化分析" subtitle={`转化漏斗与渠道效果 · GA4 · ${resolved.label}`} />
@@ -44,6 +75,46 @@ export default async function ConversionPage({
         <div className="flex justify-end">
           <DateRangeSelector />
         </div>
+
+        {/* 转化诊断 */}
+        {insights.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-primary" />
+              <h2 className="text-lg font-semibold">转化诊断与优化建议</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {insights.map((insight, i) => {
+                const Icon = INSIGHT_ICONS[insight.type];
+                const colorClass = INSIGHT_COLORS[insight.type];
+                const iconColor = INSIGHT_ICON_COLORS[insight.type];
+                const priorityBadge = PRIORITY_BADGES[insight.priority];
+                return (
+                  <Card key={i} className={colorClass}>
+                    <CardContent className="pt-5">
+                      <div className="flex items-start gap-3">
+                        <Icon className={`h-5 w-5 shrink-0 ${iconColor}`} />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-semibold">{insight.title}</div>
+                            <Badge variant="outline" className={`shrink-0 text-xs ${priorityBadge.className}`}>
+                              {priorityBadge.label}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">{insight.description}</div>
+                          <div className="rounded-md bg-white/60 p-3 text-sm">
+                            <div className="font-medium text-foreground">💡 优化建议</div>
+                            <div className="mt-1 text-muted-foreground">{insight.recommendation}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KPICard label="完成购买"    metric={data?.kpi.purchases  ?? { value:"—", change:"—", up:true }} icon="🛍️" accent="purple" />

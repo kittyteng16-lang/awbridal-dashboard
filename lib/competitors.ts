@@ -4,8 +4,9 @@
  *
  * 数据源接入状态：
  * ✅ Trustpilot - 通过爬虫获取公开评价数据
- * ✅ 自建爬虫 - 商品/定价监控（已接入）
- * ⚠️ 流量/广告监控 - 使用行业估算数据（SimilarWeb/SEMrush API 需付费）
+ * ⚠️ SimilarWeb / SEMrush API - 流量数据（需付费订阅）
+ * ⚠️ Facebook Ad Library API - 广告监控（需 Access Token）
+ * ⚠️ 自建爬虫 - 商品/定价监控（待开发）
  */
 
 import type {
@@ -29,9 +30,10 @@ const BRAND_DOMAINS: Record<string, string> = {
 
 /**
  * 获取竞品流量与渠道情报
- * 使用行业估算数据（基于公开信息和市场研究）
  */
 export async function fetchCompetitorTraffic(): Promise<CompetitorTraffic[]> {
+  // TODO: 接入 SimilarWeb / SEMrush API
+  // 模拟数据
   return BRANDS.map((brand, i) => ({
     brand,
     totalVisits: Math.floor(Math.random() * 5000000) + 1000000,
@@ -151,9 +153,9 @@ function createMockMerchandising(brand: string): CompetitorMerchandising {
 
 /**
  * 获取竞品广告投流策略
- * 使用行业估算数据（可通过 Facebook Ad Library 手动查看验证）
  */
 export async function fetchCompetitorAds(): Promise<CompetitorAds[]> {
+  // TODO: 接入 Facebook Ad Library API
   return BRANDS.map((brand, i) => ({
     brand,
     activeAds: Math.floor(Math.random() * 100) + 20,
