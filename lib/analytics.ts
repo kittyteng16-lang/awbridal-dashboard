@@ -396,29 +396,29 @@ export function analyzeConversion(data: any): Insight[] {
   const cvr = parsePercent(data.kpi?.cvr?.value || "0%");
   const cvrChange = parseChange(data.kpi?.cvr?.change || 0);
 
-  // 转化率分析
-  if (cvr < 1) {
+  // 转化率分析（礼服行业基准：0.8-1.5%）
+  if (cvr < 0.6) {
     insights.push({
       type: "danger",
       title: "转化率极低",
-      description: `整体转化率仅 ${cvr.toFixed(2)}%，远低于电商平均（2-3%）`,
-      recommendation: "紧急优化：1) 简化结账流程（减少步骤）；2) 优化支付方式（多元化）；3) 建立信任（评价、保障）；4) 提供优惠促销；5) 改善移动端体验",
+      description: `整体转化率仅 ${cvr.toFixed(2)}%，远低于礼服行业平均（0.8-1.5%）`,
+      recommendation: "紧急优化：1) 高清结账流程（减少步骤）；2) 优化支付方式（多元化）；3) 建立信任（评价、保障）；4) 提供尺码指导（减少犹豫）；5) 改善移动端体验",
       priority: "high"
     });
-  } else if (cvr < 2 && cvrChange < -10) {
+  } else if (cvr < 1.2 && cvrChange < -15) {
     insights.push({
       type: "warning",
       title: "转化率持续下降",
       description: `转化率 ${cvr.toFixed(2)}% (${cvrChange}%)，需立即干预`,
-      recommendation: "止损措施：1) 对比上期流量来源质量变化；2) 检查价格竞争力；3) 优化产品详情页；4) 测试不同促销策略；5) 分析购物车放弃原因",
+      recommendation: "止损措施：1) 对比上期流量来源质量变化；2) 检查价格竞争力；3) 优化产品详情页（高清大图、模特试穿）；4) 测试不同促销策略；5) 分析购物车放弃原因",
       priority: "high"
     });
-  } else if (cvr > 3) {
+  } else if (cvr > 1.5) {
     insights.push({
       type: "success",
       title: "转化率表现优秀",
-      description: `转化率 ${cvr.toFixed(2)}%，高于行业平均水平`,
-      recommendation: "持续优化：1) 分析高转化路径特征；2) 扩大成功策略应用范围；3) 提升客单价；4) 增加复购率；5) 优化用户终身价值",
+      description: `转化率 ${cvr.toFixed(2)}%，高于礼服行业平均水平`,
+      recommendation: "持续优化：1) 分析高转化路径特征；2) 扩大成功策略应用范围；3) 提升客单价（推荐配件）；4) 增加复购率（推荐其他场合）；5) 优化用户终身价值",
       priority: "low"
     });
   }
@@ -450,60 +450,76 @@ export function analyzeConversion(data: any): Insight[] {
     const checkoutToPurchase = data.funnel.length > 3 ?
       (parsePercent(data.funnel[3]?.rate || "0%") / Math.max(parsePercent(data.funnel[2]?.rate || "0%"), 0.01)) * 100 : 0;
 
-    // 加购率分析
-    if (viewToCart < 5) {
+    // 加购率分析（礼服行业基准：10-20%）
+    if (viewToCart < 8) {
       insights.push({
         type: "danger",
         title: "加购率严重偏低",
         description: `浏览转加购率仅 ${viewToCart.toFixed(1)}%，产品吸引力不足`,
-        recommendation: "提升加购：1) 优化产品图片和视频；2) 完善产品描述和卖点；3) 展示用户评价和评分；4) 提供尺码/风格推荐；5) 添加紧迫感元素（库存、限时）",
+        recommendation: "提升加购：1) 优化产品图片和视频（多角度、真人试穿）；2) 完善产品描述和卖点（面料、场合、风格）；3) 展示用户评价和实拍；4) 提供尺码推荐工具；5) 添加紧迫感元素（库存、限时）",
         priority: "high"
       });
-    } else if (viewToCart < 10) {
+    } else if (viewToCart < 15) {
       insights.push({
         type: "warning",
         title: "加购率有提升空间",
-        description: `浏览转加购率 ${viewToCart.toFixed(1)}%，低于优秀水平（15%+）`,
-        recommendation: "优化建议：1) A/B 测试产品页布局；2) 增加社交证明；3) 优化价格展示；4) 改善移动端体验；5) 提供虚拟试穿等工具",
+        description: `浏览转加购率 ${viewToCart.toFixed(1)}%，低于礼服行业优秀水平（20%+）`,
+        recommendation: "优化建议：1) A/B 测试产品页布局；2) 增加社交证明（买家秀、KOL 推荐）；3) 优化价格展示；4) 改善移动端体验；5) 提供虚拟试穿/AR 试妆工具",
         priority: "medium"
       });
     }
 
-    // 结账率分析
-    if (cartToCheckout > 0 && cartToCheckout < 40) {
+    // 结账率分析（礼服行业基准：15-30%，购物车放弃率 70-85%）
+    if (cartToCheckout > 0 && cartToCheckout < 15) {
       insights.push({
         type: "danger",
         title: "购物车放弃率高",
         description: `购物车到结账转化率仅 ${cartToCheckout.toFixed(1)}%，流失严重`,
-        recommendation: "减少放弃：1) 发送购物车放弃邮件/推送；2) 简化结账流程；3) 展示运费和总价；4) 提供多种支付方式；5) 添加退款保障信息",
+        recommendation: "减少放弃：1) 发送购物车放弃邮件/推送（含优惠券）；2) 简化结账流程（减少步骤）；3) 展示运费和总价（避免隐藏费用）；4) 提供多种支付方式；5) 添加退换货保障信息（降低风险）",
         priority: "high"
       });
-    } else if (cartToCheckout > 0 && cartToCheckout < 60) {
+    } else if (cartToCheckout > 0 && cartToCheckout < 25) {
       insights.push({
         type: "warning",
         title: "购物车流失较多",
         description: `购物车到结账转化率 ${cartToCheckout.toFixed(1)}%，有优化空间`,
-        recommendation: "改善措施：1) 优化购物车页面体验；2) 提供优惠激励（满减、包邮）；3) 展示信任标识；4) 优化移动端结账；5) 减少必填信息",
+        recommendation: "改善措施：1) 优化购物车页面体验（突出产品卖点）；2) 提供优惠激励（满减、包邮）；3) 展示信任标识（安全支付、品质保证）；4) 优化移动端结账；5) 减少必填信息",
         priority: "medium"
+      });
+    } else if (cartToCheckout >= 30) {
+      insights.push({
+        type: "success",
+        title: "购物车转化表现优秀",
+        description: `购物车到结账转化率 ${cartToCheckout.toFixed(1)}%，高于礼服行业平均`,
+        recommendation: "保持优势：1) 分析成功因素并应用到其他环节；2) 继续优化用户体验；3) 监控竞品策略；4) 测试更高转化可能性",
+        priority: "low"
       });
     }
 
-    // 支付完成率分析
-    if (checkoutToPurchase > 0 && checkoutToPurchase < 60) {
+    // 支付完成率分析（礼服行业基准：40-60%，高客单价决策周期长）
+    if (checkoutToPurchase > 0 && checkoutToPurchase < 40) {
       insights.push({
         type: "danger",
         title: "支付环节流失严重",
         description: `结账到支付完成率仅 ${checkoutToPurchase.toFixed(1)}%，支付问题明显`,
-        recommendation: "优化支付：1) 检查支付流程是否过于复杂；2) 增加支付方式选择；3) 优化支付页面加载速度；4) 提供客服支持；5) 测试不同支付服务商",
+        recommendation: "优化支付：1) 检查支付流程是否过于复杂；2) 增加支付方式选择（分期付款、Affirm 等）；3) 优化支付页面加载速度；4) 提供实时客服支持（消除顾虑）；5) 测试不同支付服务商",
         priority: "high"
       });
-    } else if (checkoutToPurchase > 0 && checkoutToPurchase < 75) {
+    } else if (checkoutToPurchase > 0 && checkoutToPurchase < 55) {
       insights.push({
         type: "warning",
         title: "支付环节有待优化",
         description: `结账到支付完成率 ${checkoutToPurchase.toFixed(1)}%，仍有提升空间`,
-        recommendation: "改进建议：1) 简化支付表单；2) 提供一键支付选项；3) 展示安全认证；4) 优化错误提示；5) 支持更多本地化支付",
+        recommendation: "改进建议：1) 简化支付表单；2) 提供一键支付选项（Apple Pay/Google Pay）；3) 展示安全认证和品质保障；4) 优化错误提示；5) 支持更多本地化支付（PayPal 等）",
         priority: "medium"
+      });
+    } else if (checkoutToPurchase >= 60) {
+      insights.push({
+        type: "success",
+        title: "支付完成率表现优秀",
+        description: `结账到支付完成率 ${checkoutToPurchase.toFixed(1)}%，高于礼服行业平均`,
+        recommendation: "保持优势：1) 分析成功因素（支付方式、流程设计）；2) 持续优化用户体验；3) 监控支付成功率；4) 收集用户反馈",
+        priority: "low"
       });
     }
   }
